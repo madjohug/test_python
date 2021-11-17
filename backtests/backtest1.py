@@ -7,12 +7,16 @@ import numpy as np
 
 client = Client()
 
-def calculateSma(rows):
-  print(np.sum(rows))
+def customPrint(msg, value):
+  print("----------------- " + msg + " -------------------")
+  print(value)
 
 klines = client.get_historical_klines("ETHUSDT", Client.KLINE_INTERVAL_1HOUR, "1st September 2021")
 datas = pd.DataFrame(klines, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Closetime', 'QAV', 'NofTrades', 'tbase', 'tquote', 'ignore'])
-
+datas['High'] = pd.to_numeric(datas['High'])
+datas['Low'] = pd.to_numeric(datas['Low'])
+datas['Close'] = pd.to_numeric(datas['Close'])
+datas['Open'] = pd.to_numeric(datas['Open'])
 #Initialisation des variables de tests
 wallet = 100
 
@@ -28,15 +32,41 @@ kcmult = 1.5
 usetruerange = True
 
 # - Calculer moyenne mobile (MA)
-closes = datas['Close'].to_numpy()
-print(closes)
-sma = calculateSma(closes[-bblength:])
+print("\n")
+
+sma = ta.trend.sma_indicator(datas['Close'], window=bblength)
+customPrint("SMA", sma)
+
+print("\n")
 
 # - Calculer Bandes de Bollinger
+print("\n")
+
+bb = ta.volatility.BollingerBands(close=datas['Close'], window=bblength, window_dev=2)
+upperbb = bb.bollinger_hband()
+lowerbb = bb.bollinger_lband()
+customPrint("BB", upperbb)
+
+print("\n")
 
 # - Calculer le KC
+print('\n')
+
+kc = ta.volatility.KeltnerChannel(high=datas['High'], low=datas['Low'], close=datas['Close'], window=kclength, original_version=usetruerange)
+upperkc = kc.keltner_channel_hband()
+lowerkc = kc.keltner_channel_lband()
+customPrint("KC", upperkc)
+
+print('\n')
 
 # - Calculer le SqzOn, SqzOff, et noSqz
+print('\n')
+
+sqzOn = lowerbb > lowerkc and upperbb < upperkc
+sqzOff = lowerbb < lowerkc and upperbb > upperkc
+noSqz = sqzOn == False and sqzOff == False
+
+print('\n')
 
 # - Calculer le momentum
 

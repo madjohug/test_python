@@ -3,12 +3,12 @@ import pandas as pd
 from binance.client import Client
 from flask import Flask, jsonify, app
 import ta
+import numpy as np
 
 client = Client()
 
 def calculateSma(rows):
-  for r in rows:
-    print(r)
+  print(np.sum(rows))
 
 klines = client.get_historical_klines("ETHUSDT", Client.KLINE_INTERVAL_1HOUR, "1st September 2021")
 datas = pd.DataFrame(klines, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Closetime', 'QAV', 'NofTrades', 'tbase', 'tquote', 'ignore'])
@@ -28,9 +28,9 @@ kcmult = 1.5
 usetruerange = True
 
 # - Calculer moyenne mobile (MA)
-closes = datas['Close']
-print("closes", closes)
-sma = calculateSma([1, 2, 3])
+closes = datas['Close'].to_numpy()
+print(closes)
+sma = calculateSma(closes[-bblength:])
 
 # - Calculer Bandes de Bollinger
 

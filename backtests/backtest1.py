@@ -6,16 +6,31 @@ import ta
 
 client = Client()
 
-klines = client.get_historical_klines("ETHUSDT", Client.KLINE_INTERVAL_1HOUR, "1st January 2020")
-dataframe = pd.DataFrame(klines, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Closetime', 'QAV', 'NofTrades', 'tbase', 'tquote', 'ignore'])
-dataframe.drop(['ignore', 'open', 'high', 'close', 'low'])
+def calculateSma(rows):
+  for r in rows:
+    print(r)
 
-print(dataframe)
+klines = client.get_historical_klines("ETHUSDT", Client.KLINE_INTERVAL_1HOUR, "1st September 2021")
+datas = pd.DataFrame(klines, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Closetime', 'QAV', 'NofTrades', 'tbase', 'tquote', 'ignore'])
 
 #Initialisation des variables de tests
 wallet = 100
 
-# - Calculer moyenne (MA)
+# source = prix de cloture
+source = 20
+
+bblength = 20
+bbmult = 20
+
+kclength = 20
+kcmult = 1.5
+
+usetruerange = True
+
+# - Calculer moyenne mobile (MA)
+closes = datas['Close']
+print("closes", closes)
+sma = calculateSma([1, 2, 3])
 
 # - Calculer Bandes de Bollinger
 
@@ -34,16 +49,22 @@ wallet = 100
 # multKC = input(1.5, title="KC MultFactor")
 # useTrueRange = input(true, title="Use TrueRange (KC)", type=input.bool)
 
+
 # // Defining MA
+# // sma renvoie la moyenne mobile : somme des dernières valeurs y de x, divisée par y
 # ma = sma(source, length)
 
+
 # // Calculate BB
+# // stdev = deviation standard
 # basis = ma
 # dev = mult * stdev(source, length)
 # upperBB = basis + dev
 # lowerBB = basis - dev
 
+
 # // Calculate KC
+# // tr = gamme réelle. C'est max(haut - bas, abs(haut - proche[1]), abs(bas - proche[1]))
 # range = useTrueRange ? tr : high - low
 # rangema = sma(range, lengthKC)
 # upperKC = ma + rangema * multKC
@@ -55,8 +76,10 @@ wallet = 100
 # sqzOff = lowerBB < lowerKC and upperBB > upperKC
 # noSqz = sqzOn == false and sqzOff == false
 
+
 # // Momentum
 # val = linreg(source - avg(avg(highest(high, lengthKC), lowest(low, lengthKC)), sma(close, lengthKC)), lengthKC, 0)
+
 
 # // Plots
 # bcolor = iff(val > 0, iff(val > nz(val[1]), #00FF00, #008000), iff(val < nz(val[1]), #FF0000, #800000))

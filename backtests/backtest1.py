@@ -80,10 +80,10 @@ dataCp["NoSqz"] = ((dataCp["SqzOn"] == False) & (dataCp["SqzOff"] == False))
 
 # // Pour chaque ligne : linreg(x, y, z) => intercept + pente * (longueur - 1 - décalage) avec longueur = y, décalage = z, intercept et pentes calculées avec x
 
-dataCp["test"] = max(dataCp["High"], dataCp["Low"])
-
-# dataCp["x"] = getAvg( [ (max(dataCp['High'], kclength)), (min(dataCp['Low'], kclength)) ] )
-
+dataCp["highest"] = ta.volatility.donchian_channel_hband(high=dataCp['High'], low=dataCp['Low'], close=dataCp['Close'], window=kclength)
+dataCp['lowest'] = ta.volatility.donchian_channel_lband(high=dataCp['High'], low=dataCp['Low'], close=dataCp['Close'], window=kclength)
+dataCp["SMA2"] = ta.trend.sma_indicator(dataCp['Close'], window=kclength)
+dataCp["AVG1"] = 
 # ---------------------------------------------------------------------------------
 
-# print(dataCp)
+print(dataCp)

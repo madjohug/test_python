@@ -7,9 +7,8 @@ import numpy as np
 
 client = Client()
 
-def customPrint(msg, value):
-  print("----------------- " + msg + " -------------------")
-  print(value)
+def getAvg(entries):
+  return sum(entries) / len(entries)
 
 klines = client.get_historical_klines("ETHUSDT", Client.KLINE_INTERVAL_1HOUR, "1st September 2021")
 datas = pd.DataFrame(klines, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Closetime', 'QAV', 'NofTrades', 'tbase', 'tquote', 'ignore'])
@@ -17,105 +16,74 @@ datas['High'] = pd.to_numeric(datas['High'])
 datas['Low'] = pd.to_numeric(datas['Low'])
 datas['Close'] = pd.to_numeric(datas['Close'])
 datas['Open'] = pd.to_numeric(datas['Open'])
+
+datas = datas.set_index(datas['timestamp'])
+datas.index = pd.to_datetime(datas.index, unit="ms")
+
+datas = datas.drop(columns=['QAV', 'NofTrades', 'tbase', 'tquote', 'ignore'])
+dataCp = datas.copy()
+
 #Initialisation des variables de tests
 wallet = 100
-
+mult=2.0
 # source = prix de cloture
 source = 20
 
 bblength = 20
-bbmult = 20
+bbmult = 2.0
 
 kclength = 20
 kcmult = 1.5
 
 usetruerange = True
 
+
 # - Calculer moyenne mobile (MA)
-print("\n")
 
-sma = ta.trend.sma_indicator(datas['Close'], window=bblength)
-customPrint("SMA", sma)
 
-print("\n")
+sma = ta.trend.sma_indicator(dataCp['Close'], window=bblength)
 
-# - Calculer Bandes de Bollinger
-print("\n")
 
-bb = ta.volatility.BollingerBands(close=datas['Close'], window=bblength, window_dev=2)
-upperbb = bb.bollinger_hband()
-lowerbb = bb.bollinger_lband()
-customPrint("BB", upperbb)
+# ---------------- Calculer Bandes de Bollinger --------------------
 
-print("\n")
+bb = ta.volatility.BollingerBands(close=dataCp['Close'], window=bblength, window_dev=bbmult)
+dataCp['BB_H'] = bb.bollinger_hband()
+dataCp['BB_L'] = bb.bollinger_lband()
 
-# - Calculer le KC
-print('\n')
-
-kc = ta.volatility.KeltnerChannel(high=datas['High'], low=datas['Low'], close=datas['Close'], window=kclength, original_version=usetruerange)
-upperkc = kc.keltner_channel_hband()
-lowerkc = kc.keltner_channel_lband()
-customPrint("KC", upperkc)
-
-print('\n')
-
-# - Calculer le SqzOn, SqzOff, et noSqz
-print('\n')
-
-sqzOn = lowerbb > lowerkc and upperbb < upperkc
-sqzOff = lowerbb < lowerkc and upperbb > upperkc
-noSqz = sqzOn == False and sqzOff == False
-
-print('\n')
-
-# - Calculer le momentum
+# --------------------------------------------------------------------
 
 
 
-# length = input(20, title="BB Length")
-# mult = input(2.0, title="BB MultFactor")
-# source = close
-# lengthKC = input(20, title="KC Length")
-# multKC = input(1.5, title="KC MultFactor")
-# useTrueRange = input(true, title="Use TrueRange (KC)", type=input.bool)
+# ------------ Calculer le KC ------------------
+
+kc = ta.volatility.KeltnerChannel(high=dataCp['High'], low=dataCp['Low'], close=dataCp['Close'], window=kclength, original_version=usetruerange)
+dataCp['KC_H'] = kc.keltner_channel_hband()
+dataCp['KC_L'] = kc.keltner_channel_lband()
+
+# ----------------------------------------------
 
 
-# // Defining MA
-# // sma renvoie la moyenne mobile : somme des dernières valeurs y de x, divisée par y
-# ma = sma(source, length)
+
+# ------------ Calculer le SqzOn, SqzOff, et NoSqz ------------------
+
+dataCp["SqzOn"] = ((dataCp["BB_L"] > dataCp["KC_L"]) & (dataCp["BB_H"] < dataCp["KC_H"]))
+dataCp["SqzOff"] = ((dataCp["BB_L"] < dataCp["KC_L"]) & (dataCp["BB_H"] > dataCp["KC_H"]))
+dataCp["NoSqz"] = ((dataCp["SqzOn"] == False) & (dataCp["SqzOff"] == False))
+
+# -------------------------------------------------------------------
 
 
-# // Calculate BB
-# // stdev = deviation standard
-# basis = ma
-# dev = mult * stdev(source, length)
-# upperBB = basis + dev
-# lowerBB = basis - dev
 
+# ----------------- On calcule la valeur de l'indicateur squeeze ------------------
 
-# // Calculate KC
-# // tr = gamme réelle. C'est max(haut - bas, abs(haut - proche[1]), abs(bas - proche[1]))
-# range = useTrueRange ? tr : high - low
-# rangema = sma(range, lengthKC)
-# upperKC = ma + rangema * multKC
-# lowerKC = ma - rangema * multKC
-
-
-# // SqzON | SqzOFF | noSqz
-# sqzOn = lowerBB > lowerKC and upperBB < upperKC
-# sqzOff = lowerBB < lowerKC and upperBB > upperKC
-# noSqz = sqzOn == false and sqzOff == false
-
-
-# // Momentum
 # val = linreg(source - avg(avg(highest(high, lengthKC), lowest(low, lengthKC)), sma(close, lengthKC)), lengthKC, 0)
 
+# // Pour chaque ligne : linreg(x, y, z) => intercept + pente * (longueur - 1 - décalage) avec longueur = y, décalage = z, intercept et pentes calculées avec x
 
-# // Plots
-# bcolor = iff(val > 0, iff(val > nz(val[1]), #00FF00, #008000), iff(val < nz(val[1]), #FF0000, #800000))
-# scolor = noSqz ? color.blue : sqzOn ? color.black : color.gray
-# plot(val, color=bcolor, style=plot.style_histogram, linewidth=4, transp = 50)
-# plot(0, color=scolor, style=plot.style_cross, linewidth=2)
+dataCp["test"] = max(dataCp["High"], dataCp["Low"])
 
-# sqzGREY = crossunder(lowerBB, lowerKC) and crossover(upperBB, upperKC)
-# plotshape(sqzGREY, style = shape.circle, location = location.bottom, size = size.tiny)
+# dataCp["x"] = getAvg( [ (max(dataCp['High'], kclength)), (min(dataCp['Low'], kclength)) ] )
+
+# ---------------------------------------------------------------------------------
+
+# print(dataCp)

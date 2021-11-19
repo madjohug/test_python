@@ -1,3 +1,5 @@
+#%%  Imports
+
 import flask
 import pandas as pd
 from binance.client import Client
@@ -5,7 +7,9 @@ from flask import Flask, jsonify, app
 import ta
 import numpy as np
 from scipy.stats import linregress
+from matplotlib import colors, pyplot, markers
 
+#%%
 client = Client()
 
 klines = client.get_historical_klines("ETHUSDT", Client.KLINE_INTERVAL_1HOUR, "1st September 2021")
@@ -19,6 +23,8 @@ datas = datas.set_index(datas['timestamp'])
 datas.index = pd.to_datetime(datas.index, unit="ms")
 
 datas = datas.drop(columns=['QAV', 'NofTrades', 'tbase', 'tquote', 'ignore'])
+
+#%%
 dataCp = datas.copy()
 
 #Initialisation des variables de tests
@@ -76,7 +82,7 @@ dataCp["NoSqz"] = ((dataCp["SqzOn"] == False) & (dataCp["SqzOff"] == False))
 
 # val = linreg(source - avg(avg(highest(high, lengthKC), lowest(low, lengthKC)), sma(close, lengthKC)), lengthKC, 0)
 
-# // Pour chaque ligne : linreg(x, y, z) => intercept + pente * (y - 1 - z), intercept et pentes calculées avec x
+# // Pour chaque ligne : linreg(x, y, z) => intercept(x) + pente(x) * (y - 1 - z)
 
 dataCp["highest"] = ta.volatility.donchian_channel_hband(high=dataCp['High'], low=dataCp['Low'], close=dataCp['Close'], window=kclength)
 dataCp['lowest'] = ta.volatility.donchian_channel_lband(high=dataCp['High'], low=dataCp['Low'], close=dataCp['Close'], window=kclength)
@@ -86,7 +92,36 @@ dataCp["AVG1"] = (dataCp["highest"].rolling(window=kclength).sum() + dataCp["low
 dataCp["AVG2"] = (dataCp["AVG1"].rolling(window=kclength).sum() + dataCp["SMA2"].rolling(window=kclength).sum()) / (2*kclength)
 
 # dataCp["ITCPT"] = 
-dataCp["VAL"] = linregress(pd.DataFrame.to_numpy(dataCp["Close"].rolling(window=kclength)), pd.DataFrame.to_numpy(dataCp["AVG2"].rolling(window=kclength)))
+# dataCp["VAL"] = linregress(pd.DataFrame.to_numpy(dataCp["Close"].rolling(window=kclength).), pd.DataFrame.to_numpy(dataCp["AVG2"].rolling(window=kclength))).intercept
 # ---------------------------------------------------------------------------------
 
+
+#--- plot ----
+
+# bcolor = ""
+# if (dataCp["AVG1"] > 0.):
+#   if(dataCp["AVG1"] > dataCp["AVG2"]):
+#     bgcolor = "#000F00"
+#   else:
+#     if(dataCp["AVG1"] < dataCp["AVG2"]):
+#       bgcolor = "#00FF00"
+#     else:
+#       bgcolor = "#FFFFFF"
+
+# scolor = ""
+# if (dataCp["NoSqz"]):
+#   scolor = "FF0055"
+# else:
+#   if (dataCp["SqzOn"]):
+#     scolor = "#000000"
+#   else:
+#     scolor = "FFFF00" 
+
 print(dataCp)
+
+
+
+#%%
+plot = dataCp["highest"].hist()
+
+# %%

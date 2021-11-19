@@ -4,11 +4,9 @@ from binance.client import Client
 from flask import Flask, jsonify, app
 import ta
 import numpy as np
+from scipy.stats import linregress
 
 client = Client()
-
-def getAvg(entries):
-  return sum(entries) / len(entries)
 
 klines = client.get_historical_klines("ETHUSDT", Client.KLINE_INTERVAL_1HOUR, "1st September 2021")
 datas = pd.DataFrame(klines, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Closetime', 'QAV', 'NofTrades', 'tbase', 'tquote', 'ignore'])
@@ -78,12 +76,17 @@ dataCp["NoSqz"] = ((dataCp["SqzOn"] == False) & (dataCp["SqzOff"] == False))
 
 # val = linreg(source - avg(avg(highest(high, lengthKC), lowest(low, lengthKC)), sma(close, lengthKC)), lengthKC, 0)
 
-# // Pour chaque ligne : linreg(x, y, z) => intercept + pente * (longueur - 1 - décalage) avec longueur = y, décalage = z, intercept et pentes calculées avec x
+# // Pour chaque ligne : linreg(x, y, z) => intercept + pente * (y - 1 - z), intercept et pentes calculées avec x
 
 dataCp["highest"] = ta.volatility.donchian_channel_hband(high=dataCp['High'], low=dataCp['Low'], close=dataCp['Close'], window=kclength)
 dataCp['lowest'] = ta.volatility.donchian_channel_lband(high=dataCp['High'], low=dataCp['Low'], close=dataCp['Close'], window=kclength)
 dataCp["SMA2"] = ta.trend.sma_indicator(dataCp['Close'], window=kclength)
-dataCp["AVG1"] = 
+
+dataCp["AVG1"] = (dataCp["highest"].rolling(window=kclength).sum() + dataCp["lowest"].rolling(window=kclength).sum()) / (2*kclength)
+dataCp["AVG2"] = (dataCp["AVG1"].rolling(window=kclength).sum() + dataCp["SMA2"].rolling(window=kclength).sum()) / (2*kclength)
+
+# dataCp["ITCPT"] = 
+dataCp["VAL"] = linregress(pd.DataFrame.to_numpy(dataCp["Close"].rolling(window=kclength)), pd.DataFrame.to_numpy(dataCp["AVG2"].rolling(window=kclength)))
 # ---------------------------------------------------------------------------------
 
 print(dataCp)

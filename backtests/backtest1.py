@@ -1,9 +1,11 @@
 #%%  Imports
 
 import flask
+import matplotlib
 import pandas as pd
 from binance.client import Client
 from flask import Flask, jsonify, app
+from pandas.core.frame import DataFrame
 import ta
 import numpy as np
 from scipy.stats import linregress
@@ -12,7 +14,7 @@ from matplotlib import colors, pyplot, markers
 #%%
 client = Client()
 
-klines = client.get_historical_klines("ETHUSDT", Client.KLINE_INTERVAL_1HOUR, "1st September 2021")
+klines = client.get_historical_klines("ETHUSDT", Client.KLINE_INTERVAL_1HOUR, start_str="28th January 2021", end_str="12nd February 2021")
 datas = pd.DataFrame(klines, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Closetime', 'QAV', 'NofTrades', 'tbase', 'tquote', 'ignore'])
 datas['High'] = pd.to_numeric(datas['High'])
 datas['Low'] = pd.to_numeric(datas['Low'])
@@ -98,7 +100,7 @@ dataCp["AVG2"] = (dataCp["AVG1"].rolling(window=kclength).sum() + dataCp["SMA2"]
 
 #--- plot ----
 
-# bcolor = ""
+bcolor = "green"
 # if (dataCp["AVG1"] > 0.):
 #   if(dataCp["AVG1"] > dataCp["AVG2"]):
 #     bgcolor = "#000F00"
@@ -122,6 +124,16 @@ print(dataCp)
 
 
 #%%
-plot = dataCp["highest"].hist()
+# plot = dataCp["highest"].plot.hist()
+x = dataCp["highest"].to_numpy()
+y = dataCp["timestamp"].to_numpy()
 
+# pyplot.hist(x=x, color=bcolor, bins=200)
+# pyplot.plot(0, )
+
+fig, ax = pyplot.subplots()
+
+
+ax.axhline(0, color='grey', linewidth=2)
+# ax.set_xticks(range(len(x) - 1))
 # %%

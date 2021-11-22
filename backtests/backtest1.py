@@ -1,7 +1,5 @@
 #%%  Imports
 
-import flask
-import matplotlib
 import pandas as pd
 from binance.client import Client
 from flask import Flask, jsonify, app
@@ -14,7 +12,7 @@ from matplotlib import colors, pyplot, markers
 #%%
 client = Client()
 
-klines = client.get_historical_klines("ETHUSDT", Client.KLINE_INTERVAL_1HOUR, start_str="28th January 2021", end_str="12nd February 2021")
+klines = client.get_historical_klines("BTCUSDT", Client.KLINE, start_str="19th November 2021", end_str="20th November 2021")
 datas = pd.DataFrame(klines, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Closetime', 'QAV', 'NofTrades', 'tbase', 'tquote', 'ignore'])
 datas['High'] = pd.to_numeric(datas['High'])
 datas['Low'] = pd.to_numeric(datas['Low'])

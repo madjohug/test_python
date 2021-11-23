@@ -27,31 +27,7 @@ datas = datas.drop(columns=['QAV', 'NofTrades', 'tbase', 'tquote', 'ignore', 'Cl
 #%%
 dcp = datas.copy()
 
-#Initialisation des variables de tests
-wallet = 100
-usdt = 100
-coin = 0
 
-ema_l = 50
-ema_m = 100
-ema_h = 150
-rsiwindow = 14
-
-lowerOS = 20.
-upperOS = 80.
-
-taxe = 0.1
-sltaux = 0.02
-tptaux = 0.1
-
-stoploss = 0
-takeprofit = 500000
-
-ratiobuy = 0.1
-canbuy = True
-
-result = None
-result = pd.DataFrame(columns=['date', 'type', 'price', 'amount', 'coins', 'frais', 'newwallet'])
 
 # - Calculer moyenne mobile exponentielle(MA)
 
@@ -69,6 +45,32 @@ dcp['STOCH_D'] = stoch.stoch_signal()
 dcp
 
 # %%
+
+#BOUCLE
+wallet = 100
+usdt = 100
+coin = 0
+
+ema_l = 50
+ema_m = 100
+ema_h = 150
+rsiwindow = 14
+
+lowerOS = 20
+upperOS = 80
+
+taxe = 0.1
+sltaux = 0.02
+tptaux = 0.1
+
+stoploss = 0
+takeprofit = 500000
+
+ratiobuy = 0.1
+canbuy = True
+
+result = None
+result = pd.DataFrame(columns=['date', 'type', 'price', 'amount', 'coins', 'frais', 'newwallet'])
 
 previousrow = dcp.iloc[0]
 
@@ -150,6 +152,6 @@ for x, row in dcp.iterrows():
 
   previousrow = row
 
-# %%
 result
+
 # %%

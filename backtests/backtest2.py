@@ -12,7 +12,7 @@ from matplotlib import colors, pyplot, markers
 #%%
 client = Client()
 
-klines = client.get_historical_klines("ETHUSDT", Client.KLINE_INTERVAL_1MINUTE, start_str="1st December 2017")
+klines = client.get_historical_klines("ETHUSDT", Client.KLINE_INTERVAL_1MINUTE, start_str="15th September 2021")
 datas = pd.DataFrame(klines, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Closetime', 'QAV', 'NofTrades', 'tbase', 'tquote', 'ignore'])
 datas['High'] = pd.to_numeric(datas['High'])
 datas['Low'] = pd.to_numeric(datas['Low'])
@@ -37,8 +37,8 @@ ema_m = 100
 ema_h = 150
 rsiwindow = 14
 
-lowerOS = 20
-upperOS = 80
+lowerOS = 20.
+upperOS = 80.
 
 taxe = 0.1
 sltaux = 0.02
@@ -66,20 +66,20 @@ stoch = ta.momentum.StochasticOscillator(dcp['High'], dcp['Low'], dcp['Close'], 
 dcp['STOCH_K'] = stoch.stoch()
 dcp['STOCH_D'] = stoch.stoch_signal()
 
-print(dcp)
+dcp
 
 # %%
 
 previousrow = dcp.iloc[0]
 
 def buyCondition(row, prev):
-  if (row['STOCH_K'] > row['STOCH_D'] and prev['STOCH_K'] < prev['STOCH_D'] and prev['STOCH_K'] > lowerOS) :
+  if (row['STOCH_K'] > row['STOCH_D'] and prev['STOCH_K'] < prev['STOCH_D'] and row['STOCH_K'] > lowerOS) :
     return True
   else:
     return False
 
 def sellCondition(row, prev):
-  if (row['STOCH_K'] < row['STOCH_D'] and prev['STOCH_K'] > prev['STOCH_D'] and prev['STOCH_K'] < upperOS) :
+  if (row['STOCH_K'] < row['STOCH_D'] and prev['STOCH_K'] > prev['STOCH_D'] and row['STOCH_K'] < upperOS) :
     return True
   else:
     return False
@@ -89,19 +89,19 @@ for x, row in dcp.iterrows():
   if (buyCondition(row, previousrow) == True and canbuy == True and usdt > 0):
     buyprice = row['Close']
 
-    usdtchanged = usdt - usdt * ratiobuy
-    usdt = usdt * ratiobuy
+    usdtchanged = usdt * ratiobuy
+    usdt = usdt - usdt * ratiobuy
 
     stoploss = buyprice - sltaux * buyprice
     takeprofit = buyprice + tptaux * buyprice
 
     canbuy = False
 
-    coin = usdtchanged / buyprice - (usdtchanged * buyprice * taxe)
+    coin = usdtchanged / buyprice - ((usdtchanged / buyprice) * taxe)
     wallet = usdt
 
-    myrow = {'date': x, 'type': "BUY", 'price': buyprice, 'amount': usdtchanged, 'coins': coin, 'frais': usdtchanged * buyprice * taxe, 'newwallet': wallet}
-    result.append(myrow, ignore_index=True)
+    myrow = {'date': x, 'type': "BUY", 'price': buyprice, 'amount': usdtchanged, 'coins': coin, 'frais': (usdtchanged / buyprice) * taxe, 'newwallet': usdt}
+    result = result.append(myrow, ignore_index=True)
 
   #StopLoss
   elif (canbuy == False and coin > 0 and stoploss > row['Low']):
@@ -115,8 +115,8 @@ for x, row in dcp.iterrows():
     canbuy = True
     wallet = usdt
 
-    myrow = {'date': x, 'type': "STOPLOSS", 'price': sellprice, 'amount': lastcoinamount, 'coins': coin, 'frais': lastcoinamount * sellprice * taxe, 'newwallet': wallet}
-    result.append(myrow, ignore_index=True)
+    myrow = {'date': x, 'type': "STOPLOSS", 'price': sellprice, 'amount': lastcoinamount, 'coins': coin, 'frais': lastcoinamount * sellprice * taxe, 'newwallet': usdt}
+    result = result.append(myrow, ignore_index=True)
 
   #TakeProfit
   elif (canbuy == False and coin > 0 and takeprofit < row['High']):
@@ -130,8 +130,8 @@ for x, row in dcp.iterrows():
     canbuy = True
     wallet = usdt
 
-    myrow = {'date': x, 'type': "TAKEPROFIT", 'price': sellprice, 'amount': lastcoinamount, 'coins': coin, 'frais': lastcoinamount * sellprice * taxe, 'newwallet': wallet}
-    result.append(myrow, ignore_index=True)
+    myrow = {'date': x, 'type': "TAKEPROFIT", 'price': sellprice, 'amount': lastcoinamount, 'coins': coin, 'frais': lastcoinamount * sellprice * taxe, 'newwallet': usdt}
+    result = result.append(myrow, ignore_index=True)
 
   #Vente classique
   elif (canbuy == False and coin > 0 and sellCondition(row, previousrow) == True):
@@ -145,11 +145,11 @@ for x, row in dcp.iterrows():
 
     canbuy = True
 
-    myrow = {'date': x, 'type': "SELL", 'price': sellprice, 'amount': lastcoinamount, 'coins': coin, 'frais': lastcoinamount * sellprice * taxe, 'newwallet': wallet}
-    result.append(myrow, ignore_index=True)
+    myrow = {'date': x, 'type': "SELL", 'price': sellprice, 'amount': lastcoinamount, 'coins': coin, 'frais': lastcoinamount * sellprice * taxe, 'newwallet': usdt}
+    result = result.append(myrow, ignore_index=True)
 
   previousrow = row
 
 # %%
-print(result)
+result
 # %%

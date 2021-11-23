@@ -12,7 +12,7 @@ from matplotlib import colors, pyplot, markers
 #%%
 client = Client()
 
-klines = client.get_historical_klines("ETHUSDT", Client.KLINE_INTERVAL_1MINUTE, start_str="15th September 2021")
+klines = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_1MINUTE, start_str="15th October 2021")
 datas = pd.DataFrame(klines, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Closetime', 'QAV', 'NofTrades', 'tbase', 'tquote', 'ignore'])
 datas['High'] = pd.to_numeric(datas['High'])
 datas['Low'] = pd.to_numeric(datas['Low'])
@@ -31,6 +31,7 @@ ema_l = 50
 ema_m = 100
 ema_h = 150
 
+dcwindow = 20
 rsiwindow = 14
 # - Calculer moyenne mobile exponentielle(MA)
 
@@ -45,19 +46,25 @@ stoch = ta.momentum.StochasticOscillator(dcp['High'], dcp['Low'], dcp['Close'], 
 dcp['STOCH_K'] = stoch.stoch()
 dcp['STOCH_D'] = stoch.stoch_signal()
 
+donch = ta.volatility.DonchianChannel(dcp['High'], dcp['Low'], dcp['Close'], window=dcwindow)
+dcp['DONCH_L'] = donch.donchian_channel_lband()
+dcp['DONCH_H'] = donch.donchian_channel_hband()
+
 dcp
 
 # %%
 
 #BOUCLE
-wallet = 100
-usdt = 100
+wallet = 1000
+usdt = 1000
+startusdt = usdt
 coin = 0
 
 lowerOS = 20
 upperOS = 80
 
-taxe = 0.01
+taxe = 0.0007
+maker = 0.0005
 sltaux = 0.02
 tptaux = 0.1
 
@@ -68,12 +75,14 @@ ratiobuy = 0.1
 canbuy = True
 
 result = None
-result = pd.DataFrame(columns=['date', 'type', 'price', 'amount', 'coins', 'frais', 'newwallet'])
+result = pd.DataFrame(columns=['date', 'type', 'price', 'amount', 'sans_frais', 'coins', 'frais', 'usdt'])
 
 previousrow = dcp.iloc[0]
 
 def buyCondition(row, prev):
-  if (row['STOCH_K'] > row['STOCH_D'] and prev['STOCH_K'] < prev['STOCH_D'] and row['STOCH_K'] > lowerOS) :
+  if (row['STOCH_K'] > row['STOCH_D'] and prev['STOCH_K'] < prev['STOCH_D'] and row['STOCH_K'] > lowerOS and row['STOCH_D'] > lowerOS
+    and row['EMA_L'] > row['EMA_M'] and row['EMA_M'] > row['EMA_H']
+    and row['Close'] > prev['DONCH_H']) :
     return True
   else:
     return False
@@ -91,66 +100,72 @@ for x, row in dcp.iterrows():
 
     usdtchanged = float("{:.2f}".format(usdt * ratiobuy))
 
-    usdt = usdt - usdt * ratiobuy
+    frais = float(usdtchanged * taxe)
+    usdt = usdt - usdtchanged - frais
+
+    coin = float(usdtchanged / buyprice)
 
     stoploss = buyprice - sltaux * buyprice
     takeprofit = buyprice + tptaux * buyprice
 
     canbuy = False
 
-    coin = float(usdtchanged / buyprice - ((usdtchanged / buyprice) * taxe))
-    wallet = usdt
-
-    myrow = {'date': x, 'type': "BUY", 'price': buyprice, 'amount': usdtchanged, 'coins': coin, 'frais': float("{:.5f}".format(usdtchanged / buyprice * taxe)), 'newwallet': usdt}
+    myrow = {'date': x, 'type': "BUY", 'price': buyprice, 'amount': usdtchanged, 'sans_frais': usdt, 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt}
     result = result.append(myrow, ignore_index=True)
 
   #StopLoss
-  elif (canbuy == False and coin > 0 and stoploss > row['Low']):
+  elif (coin > 0 and stoploss > row['Low']):
     sellprice = stoploss
 
-    usdt = usdt + (coin * sellprice) - (coin * sellprice * taxe)   
+    usdt = usdt + (coin * sellprice)
 
-    lastcoinamount = coin
+    frais = float(coin * taxe)
+    usdt = usdt + (coin * sellprice)
     coin = 0
 
     canbuy = True
-    wallet = usdt
 
-    myrow = {'date': x, 'type': "STOPLOSS", 'price': sellprice, 'amount': lastcoinamount, 'coins': coin, 'frais': float("{:.5f}".format((lastcoinamount * sellprice * taxe))), 'newwallet': usdt}
+    myrow = {'date': x, 'type': "STOPLOSS", 'price': sellprice, 'amount': "", 'sans_frais': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt}
     result = result.append(myrow, ignore_index=True)
 
   #TakeProfit
-  elif (canbuy == False and coin > 0 and takeprofit < row['High']):
+  elif (coin > 0 and takeprofit < row['High']):
     sellprice = takeprofit
 
-    usdt = usdt + (coin * sellprice) - (coin * sellprice * taxe)   
+    frais = float(coin * taxe)
+    usdt = usdt + (coin * sellprice)
 
-    lastcoinamount = coin
     coin = 0
 
     canbuy = True
-    wallet = usdt
 
-    myrow = {'date': x, 'type': "TAKEPROFIT", 'price': sellprice, 'amount': lastcoinamount, 'coins': coin, 'frais': float("{:.5f}".format((lastcoinamount * sellprice * taxe))), 'newwallet': usdt}
+    myrow = {'date': x, 'type': "TAKEPROFIT", 'price': sellprice, 'amount': "", 'sans_frais': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt}
     result = result.append(myrow, ignore_index=True)
 
   #Vente classique
   elif (canbuy == False and coin > 0 and sellCondition(row, previousrow) == True):
     sellprice = row['Close']
-    usdt = usdt + (coin * sellprice) - (coin * sellprice * taxe)
 
-    wallet = usdt
+    frais = float(coin * taxe)
+    sansfrais = usdt + (coin * sellprice)
 
-    lastcoinamount = coin
+    coin = coin - frais
+    usdt = usdt + (coin * sellprice)
+
     coin = 0
 
     canbuy = True
 
-    myrow = {'date': x, 'type': "SELL", 'price': sellprice, 'amount': lastcoinamount, 'coins': coin, 'frais': float("{:.5f}".format((lastcoinamount * sellprice * taxe))), 'newwallet': usdt}
+    myrow = {'date': x, 'type': "SELL", 'price': sellprice, 'amount': "", 'sans_frais': sansfrais, 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt}
     result = result.append(myrow, ignore_index=True)
 
   previousrow = row
 
-result
 
+print("USDT AU DEBUT : ", startusdt)
+print("USDT A LA FIN : ", usdt)
+
+print(result['type'].value_counts())
+
+result
 # %%

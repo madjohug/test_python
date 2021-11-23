@@ -27,8 +27,11 @@ datas = datas.drop(columns=['QAV', 'NofTrades', 'tbase', 'tquote', 'ignore', 'Cl
 #%%
 dcp = datas.copy()
 
+ema_l = 50
+ema_m = 100
+ema_h = 150
 
-
+rsiwindow = 14
 # - Calculer moyenne mobile exponentielle(MA)
 
 dcp['EMA_L'] = ta.trend.ema_indicator(dcp['Close'], window=ema_l)
@@ -51,15 +54,10 @@ wallet = 100
 usdt = 100
 coin = 0
 
-ema_l = 50
-ema_m = 100
-ema_h = 150
-rsiwindow = 14
-
 lowerOS = 20
 upperOS = 80
 
-taxe = 0.1
+taxe = 0.01
 sltaux = 0.02
 tptaux = 0.1
 
@@ -91,7 +89,8 @@ for x, row in dcp.iterrows():
   if (buyCondition(row, previousrow) == True and canbuy == True and usdt > 0):
     buyprice = row['Close']
 
-    usdtchanged = usdt * ratiobuy
+    usdtchanged = float("{:.2f}".format(usdt * ratiobuy))
+
     usdt = usdt - usdt * ratiobuy
 
     stoploss = buyprice - sltaux * buyprice
@@ -99,10 +98,10 @@ for x, row in dcp.iterrows():
 
     canbuy = False
 
-    coin = usdtchanged / buyprice - ((usdtchanged / buyprice) * taxe)
+    coin = float(usdtchanged / buyprice - ((usdtchanged / buyprice) * taxe))
     wallet = usdt
 
-    myrow = {'date': x, 'type': "BUY", 'price': buyprice, 'amount': usdtchanged, 'coins': coin, 'frais': (usdtchanged / buyprice) * taxe, 'newwallet': usdt}
+    myrow = {'date': x, 'type': "BUY", 'price': buyprice, 'amount': usdtchanged, 'coins': coin, 'frais': float("{:.5f}".format(usdtchanged / buyprice * taxe)), 'newwallet': usdt}
     result = result.append(myrow, ignore_index=True)
 
   #StopLoss
@@ -117,7 +116,7 @@ for x, row in dcp.iterrows():
     canbuy = True
     wallet = usdt
 
-    myrow = {'date': x, 'type': "STOPLOSS", 'price': sellprice, 'amount': lastcoinamount, 'coins': coin, 'frais': lastcoinamount * sellprice * taxe, 'newwallet': usdt}
+    myrow = {'date': x, 'type': "STOPLOSS", 'price': sellprice, 'amount': lastcoinamount, 'coins': coin, 'frais': float("{:.5f}".format((lastcoinamount * sellprice * taxe))), 'newwallet': usdt}
     result = result.append(myrow, ignore_index=True)
 
   #TakeProfit
@@ -132,7 +131,7 @@ for x, row in dcp.iterrows():
     canbuy = True
     wallet = usdt
 
-    myrow = {'date': x, 'type': "TAKEPROFIT", 'price': sellprice, 'amount': lastcoinamount, 'coins': coin, 'frais': lastcoinamount * sellprice * taxe, 'newwallet': usdt}
+    myrow = {'date': x, 'type': "TAKEPROFIT", 'price': sellprice, 'amount': lastcoinamount, 'coins': coin, 'frais': float("{:.5f}".format((lastcoinamount * sellprice * taxe))), 'newwallet': usdt}
     result = result.append(myrow, ignore_index=True)
 
   #Vente classique
@@ -147,7 +146,7 @@ for x, row in dcp.iterrows():
 
     canbuy = True
 
-    myrow = {'date': x, 'type': "SELL", 'price': sellprice, 'amount': lastcoinamount, 'coins': coin, 'frais': lastcoinamount * sellprice * taxe, 'newwallet': usdt}
+    myrow = {'date': x, 'type': "SELL", 'price': sellprice, 'amount': lastcoinamount, 'coins': coin, 'frais': float("{:.5f}".format((lastcoinamount * sellprice * taxe))), 'newwallet': usdt}
     result = result.append(myrow, ignore_index=True)
 
   previousrow = row

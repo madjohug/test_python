@@ -80,7 +80,7 @@ result = pd.DataFrame(columns=['date', 'type', 'price', 'amount', 'sans_frais', 
 previousrow = dcp.iloc[0]
 
 def buyCondition(row, prev):
-  if (row['STOCH_K'] > row['STOCH_D'] and prev['STOCH_K'] < prev['STOCH_D'] and row['STOCH_K'] > lowerOS and row['STOCH_D'] > lowerOS
+  if (row['STOCH_K'] > row['STOCH_D'] and prev['STOCH_K'] < prev['STOCH_D'] and row['STOCH_K'] > lowerOS
     and row['EMA_L'] > row['EMA_M'] and row['EMA_M'] > row['EMA_H']
     and row['Close'] > prev['DONCH_H']) :
     return True

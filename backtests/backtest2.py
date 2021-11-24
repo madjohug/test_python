@@ -8,6 +8,7 @@ import ta
 import numpy as np
 from scipy.stats import linregress
 from matplotlib import colors, pyplot, markers
+from williams_fractal import wilFractal
 
 #%%
 client = Client()
@@ -43,19 +44,24 @@ rsiwindow = 14
 dcp["RSI"] = ta.momentum.RSIIndicator(dcp['Close'], window=rsiwindow).rsi()
 
 stoch = ta.momentum.StochasticOscillator(dcp['High'], dcp['Low'], dcp['Close'], window=rsiwindow, smooth_window=3)
-dcp['STOCH_K'] = stoch.stoch()
-dcp['STOCH_D'] = stoch.stoch_signal()
+# dcp['STOCH_K'] = stoch.stoch()
+# dcp['STOCH_D'] = stoch.stoch_signal()
 
-donch = ta.volatility.DonchianChannel(dcp['High'], dcp['Low'], dcp['Close'], window=dcwindow)
-dcp['DONCH_L'] = donch.donchian_channel_lband()
-dcp['DONCH_H'] = donch.donchian_channel_hband()
+# donch = ta.volatility.DonchianChannel(dcp['High'], dcp['Low'], dcp['Close'], window=dcwindow)
+# dcp['DONCH_L'] = donch.donchian_channel_lband()
+# dcp['DONCH_H'] = donch.donchian_channel_hband()
 
-ulcer = ta.volatility.UlcerIndex(dcp['Close'], 14)
-dcp['ULC'] = ulcer.ulcer_index()
+# ulcer = ta.volatility.UlcerIndex(dcp['Close'], 14)
+# dcp['ULC'] = ulcer.ulcer_index()
 
-sma = ta.trend.SMAIndicator(dcp['ULC'], window=52)
-dcp['SMA'] = sma.sma_indicator()
+dcp['SMA_1'] = ta.trend.SMAIndicator(dcp['Close'], window=50).sma_indicator()
+dcp['SMA_2'] = ta.trend.SMAIndicator(dcp['Close'], window=75).sma_indicator()
+dcp['SMA_3'] = ta.trend.SMAIndicator(dcp['Close'], window=100).sma_indicator()
 
+dcp['RSI'] = ta.momentum.RSIIndicator(dcp['Close'], 14).rsi()
+
+will = wilFractal(dcp)
+dcp['WILL'] = will[1]
 dcp
 
 # %%

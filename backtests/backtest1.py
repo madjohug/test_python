@@ -102,11 +102,11 @@ dcp['SClose'] = dcp['X'] * dcp['X']
 dcp["SLOPE"] = ( (kclength * dcp['X'].rolling(kclength).sum() - (dcp['X'].rolling(kclength).sum())) 
                / (kclength * dcp['SClose'].rolling(kclength).sum() - (dcp['X'].rolling(kclength).sum() * dcp['X'].rolling(kclength).sum())))
 
-dcp['INT'] = dcp['X'] - dcp['X']
+dcp['INT'] = dcp['X'] - dcp['SLOPE']
 # dcp["VAL"] = linregress(pd.DataFrame.to_numpy(dcp["Close"].rolling(window=kclength).), pd.DataFrame.to_numpy(dcp["AVG2"].rolling(window=kclength))).intercept
 # ---------------------------------------------------------------------------------
 
-dcp["SQZ"] = dcp['INT'] + dcp['SLOPE'] * (kclength - 1) 
+dcp["SQZ"] = dcp['INT'] + dcp['SLOPE'] * kclength
 dcp
 
 # %%

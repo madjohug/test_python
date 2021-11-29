@@ -8,11 +8,12 @@ import ta
 import numpy as np
 from scipy.stats import linregress
 from matplotlib import colors, pyplot, markers
+from utils import getSumOfSquared
 
 #%%
 client = Client()
 
-klines = client.get_historical_klines("BTCUSDT", Client.KLINE, start_str="19th November 2021", end_str="20th November 2021")
+klines = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_1MINUTE, start_str="19th November 2021")
 datas = pd.DataFrame(klines, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Closetime', 'QAV', 'NofTrades', 'tbase', 'tquote', 'ignore'])
 datas['High'] = pd.to_numeric(datas['High'])
 datas['Low'] = pd.to_numeric(datas['Low'])
@@ -22,10 +23,13 @@ datas['Open'] = pd.to_numeric(datas['Open'])
 datas = datas.set_index(datas['timestamp'])
 datas.index = pd.to_datetime(datas.index, unit="ms")
 
-datas = datas.drop(columns=['QAV', 'NofTrades', 'tbase', 'tquote', 'ignore'])
+datas = datas.drop(columns=['QAV', 'NofTrades', 'tbase', 'tquote', 'ignore', 'Volume', 'Closetime'])
+
+datas
+
 
 #%%
-dataCp = datas.copy()
+dcp = datas.copy()
 
 #Initialisation des variables de tests
 wallet = 100
@@ -45,14 +49,14 @@ usetruerange = True
 # - Calculer moyenne mobile (MA)
 
 
-sma = ta.trend.sma_indicator(dataCp['Close'], window=bblength)
+sma = ta.trend.sma_indicator(dcp['Close'], window=bblength)
 
 
 # ---------------- Calculer Bandes de Bollinger --------------------
 
-bb = ta.volatility.BollingerBands(close=dataCp['Close'], window=bblength, window_dev=bbmult)
-dataCp['BB_H'] = bb.bollinger_hband()
-dataCp['BB_L'] = bb.bollinger_lband()
+bb = ta.volatility.BollingerBands(close=dcp['Close'], window=bblength, window_dev=bbmult)
+dcp['BB_H'] = bb.bollinger_hband()
+dcp['BB_L'] = bb.bollinger_lband()
 
 # --------------------------------------------------------------------
 
@@ -60,9 +64,9 @@ dataCp['BB_L'] = bb.bollinger_lband()
 
 # ------------ Calculer le KC ------------------
 
-kc = ta.volatility.KeltnerChannel(high=dataCp['High'], low=dataCp['Low'], close=dataCp['Close'], window=kclength, original_version=usetruerange)
-dataCp['KC_H'] = kc.keltner_channel_hband()
-dataCp['KC_L'] = kc.keltner_channel_lband()
+kc = ta.volatility.KeltnerChannel(high=dcp['High'], low=dcp['Low'], close=dcp['Close'], window=kclength, original_version=usetruerange)
+dcp['KC_H'] = kc.keltner_channel_hband()
+dcp['KC_L'] = kc.keltner_channel_lband()
 
 # ----------------------------------------------
 
@@ -70,9 +74,9 @@ dataCp['KC_L'] = kc.keltner_channel_lband()
 
 # ------------ Calculer le SqzOn, SqzOff, et NoSqz ------------------
 
-dataCp["SqzOn"] = ((dataCp["BB_L"] > dataCp["KC_L"]) & (dataCp["BB_H"] < dataCp["KC_H"]))
-dataCp["SqzOff"] = ((dataCp["BB_L"] < dataCp["KC_L"]) & (dataCp["BB_H"] > dataCp["KC_H"]))
-dataCp["NoSqz"] = ((dataCp["SqzOn"] == False) & (dataCp["SqzOff"] == False))
+dcp["SqzOn"] = ((dcp["BB_L"] > dcp["KC_L"]) & (dcp["BB_H"] < dcp["KC_H"]))
+dcp["SqzOff"] = ((dcp["BB_L"] < dcp["KC_L"]) & (dcp["BB_H"] > dcp["KC_H"]))
+dcp["NoSqz"] = ((dcp["SqzOn"] == False) & (dcp["SqzOff"] == False))
 
 # -------------------------------------------------------------------
 
@@ -84,54 +88,23 @@ dataCp["NoSqz"] = ((dataCp["SqzOn"] == False) & (dataCp["SqzOff"] == False))
 
 # // Pour chaque ligne : linreg(x, y, z) => intercept(x) + pente(x) * (y - 1 - z)
 
-dataCp["highest"] = ta.volatility.donchian_channel_hband(high=dataCp['High'], low=dataCp['Low'], close=dataCp['Close'], window=kclength)
-dataCp['lowest'] = ta.volatility.donchian_channel_lband(high=dataCp['High'], low=dataCp['Low'], close=dataCp['Close'], window=kclength)
-dataCp["SMA2"] = ta.trend.sma_indicator(dataCp['Close'], window=kclength)
+dcp["highest"] = ta.volatility.donchian_channel_hband(high=dcp['High'], low=dcp['Low'], close=dcp['Close'], window=kclength)
+dcp['lowest'] = ta.volatility.donchian_channel_lband(high=dcp['High'], low=dcp['Low'], close=dcp['Close'], window=kclength)
+dcp["SMA2"] = ta.trend.sma_indicator(dcp['Close'], window=kclength)
 
-dataCp["AVG1"] = (dataCp["highest"].rolling(window=kclength).sum() + dataCp["lowest"].rolling(window=kclength).sum()) / (2*kclength)
-dataCp["AVG2"] = (dataCp["AVG1"].rolling(window=kclength).sum() + dataCp["SMA2"].rolling(window=kclength).sum()) / (2*kclength)
+dcp["AVG1"] = (dcp["highest"].rolling(window=kclength).sum() + dcp["lowest"].rolling(window=kclength).sum()) / (2*kclength)
+dcp["AVG2"] = (dcp["AVG1"].rolling(window=kclength).sum() + dcp["SMA2"].rolling(window=kclength).sum()) / (2*kclength)
 
-# dataCp["ITCPT"] = 
-# dataCp["VAL"] = linregress(pd.DataFrame.to_numpy(dataCp["Close"].rolling(window=kclength).), pd.DataFrame.to_numpy(dataCp["AVG2"].rolling(window=kclength))).intercept
+dcp['SClose'] = dcp['Close'] * dcp['Close']
+
+dcp["SLOPE"] = ( (kclength * (dcp['Close'].rolling(kclength).sum()) - (dcp['Close'].rolling(kclength).sum())) 
+               / (kclength * (dcp['SClose'].rolling(kclength).sum()) - (dcp['Close'].rolling(kclength).sum() * dcp['Close'].rolling(kclength).sum())))
+
+dcp['INT'] = dcp['Close'] - dcp['SLOPE']
+# dcp["VAL"] = linregress(pd.DataFrame.to_numpy(dcp["Close"].rolling(window=kclength).), pd.DataFrame.to_numpy(dcp["AVG2"].rolling(window=kclength))).intercept
 # ---------------------------------------------------------------------------------
 
+dcp["SQZ"] = dcp['INT'] + dcp['SLOPE'] * (kclength - 1) 
+dcp
 
-#--- plot ----
-
-bcolor = "green"
-# if (dataCp["AVG1"] > 0.):
-#   if(dataCp["AVG1"] > dataCp["AVG2"]):
-#     bgcolor = "#000F00"
-#   else:
-#     if(dataCp["AVG1"] < dataCp["AVG2"]):
-#       bgcolor = "#00FF00"
-#     else:
-#       bgcolor = "#FFFFFF"
-
-# scolor = ""
-# if (dataCp["NoSqz"]):
-#   scolor = "FF0055"
-# else:
-#   if (dataCp["SqzOn"]):
-#     scolor = "#000000"
-#   else:
-#     scolor = "FFFF00" 
-
-print(dataCp)
-
-
-
-#%%
-# plot = dataCp["highest"].plot.hist()
-x = dataCp["highest"].to_numpy()
-y = dataCp["timestamp"].to_numpy()
-
-# pyplot.hist(x=x, color=bcolor, bins=200)
-# pyplot.plot(0, )
-
-fig, ax = pyplot.subplots()
-
-
-ax.axhline(0, color='grey', linewidth=2)
-# ax.set_xticks(range(len(x) - 1))
 # %%

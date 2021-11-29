@@ -95,12 +95,14 @@ dcp["SMA2"] = ta.trend.sma_indicator(dcp['Close'], window=kclength)
 dcp["AVG1"] = (dcp["highest"].rolling(window=kclength).sum() + dcp["lowest"].rolling(window=kclength).sum()) / (2*kclength)
 dcp["AVG2"] = (dcp["AVG1"].rolling(window=kclength).sum() + dcp["SMA2"].rolling(window=kclength).sum()) / (2*kclength)
 
-dcp['SClose'] = dcp['Close'] * dcp['Close']
+dcp['X'] = dcp['Close'] - dcp['AVG2']
 
-dcp["SLOPE"] = ( (kclength * (dcp['Close'].rolling(kclength).sum()) - (dcp['Close'].rolling(kclength).sum())) 
-               / (kclength * (dcp['SClose'].rolling(kclength).sum()) - (dcp['Close'].rolling(kclength).sum() * dcp['Close'].rolling(kclength).sum())))
+dcp['SClose'] = dcp['X'] * dcp['X']
 
-dcp['INT'] = dcp['Close'] - dcp['SLOPE']
+dcp["SLOPE"] = ( (kclength * dcp['X'].rolling(kclength).sum() - (dcp['X'].rolling(kclength).sum())) 
+               / (kclength * dcp['SClose'].rolling(kclength).sum() - (dcp['X'].rolling(kclength).sum() * dcp['X'].rolling(kclength).sum())))
+
+dcp['INT'] = dcp['X'] - dcp['X']
 # dcp["VAL"] = linregress(pd.DataFrame.to_numpy(dcp["Close"].rolling(window=kclength).), pd.DataFrame.to_numpy(dcp["AVG2"].rolling(window=kclength))).intercept
 # ---------------------------------------------------------------------------------
 

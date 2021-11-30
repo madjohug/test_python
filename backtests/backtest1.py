@@ -13,7 +13,7 @@ from utils import getSumOfSquared
 #%%
 client = Client()
 
-klines = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_1MINUTE, start_str="19th November 2021")
+klines = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_1MINUTE, start_str="30th November 2021")
 datas = pd.DataFrame(klines, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Closetime', 'QAV', 'NofTrades', 'tbase', 'tquote', 'ignore'])
 datas['High'] = pd.to_numeric(datas['High'])
 datas['Low'] = pd.to_numeric(datas['Low'])
@@ -92,8 +92,8 @@ dcp["highest"] = ta.volatility.donchian_channel_hband(high=dcp['High'], low=dcp[
 dcp['lowest'] = ta.volatility.donchian_channel_lband(high=dcp['High'], low=dcp['Low'], close=dcp['Close'], window=kclength)
 dcp["SMA2"] = ta.trend.sma_indicator(dcp['Close'], window=kclength)
 
-dcp["AVG1"] = (dcp["highest"].rolling(window=kclength).sum() + dcp["lowest"].rolling(window=kclength).sum()) / (2*kclength)
-dcp["AVG2"] = (dcp["AVG1"].rolling(window=kclength).sum() + dcp["SMA2"].rolling(window=kclength).sum()) / (2*kclength)
+dcp["AVG1"] = (dcp["highest"] + dcp["lowest"]) / 2
+dcp["AVG2"] = (dcp["AVG1"] + dcp["SMA2"]) / 2
 
 dcp['X'] = dcp['Close'] - dcp['AVG2']
 
@@ -106,7 +106,14 @@ dcp['INT'] = dcp['X'] - dcp['SLOPE']
 # dcp["VAL"] = linregress(pd.DataFrame.to_numpy(dcp["Close"].rolling(window=kclength).), pd.DataFrame.to_numpy(dcp["AVG2"].rolling(window=kclength))).intercept
 # ---------------------------------------------------------------------------------
 
+slope, intercept, r, p, se = linregress(list(range(1, 20)), dcp.iloc[len(dcp)-kclength:len(dcp)-1]['Close'])
+
 dcp["SQZ"] = dcp['INT'] + dcp['SLOPE'] * kclength
+
+print("sqz", intercept + slope * (kclength - 1 - 0))
+print("slope", slope)
+print("intercept", intercept)
+
 dcp
 
 # %%

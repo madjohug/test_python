@@ -26,5 +26,7 @@ df = df.append(row, ignore_index=True)
 
 df
 
-print(df.iloc[-1]['Nom'])
+print(df.iloc[len(df)-3:len(df)-1]['Nom'])
+
+print(list(range(1,21)))
 # %%

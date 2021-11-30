@@ -16,14 +16,14 @@ client = Client()
 canBuy = True
 
 def BuyCondition(row, prev):
-  if (row['RSI'] < 50 and row['SQZ'] > prev['SQZ'] and row['SQZ'] < 0.0):
+  if (row['RSI'] > 50 and row['SQZ'] > prev['SQZ'] and row['SQZ'] < 0.0):
     return True
   else:
     return False
 
 
 def SellCondition(row, prev):
-  if (row['RSI'] > 20 and row['SQZ'] < prev['SQZ'] and row['SQZ'] > 0.0):
+  if (row['RSI'] > 20 and row['SQZ'] < prev['SQZ'] and row['SQZ'] < 0.0 and prev['SQZ'] > 0.0):
     return True
   else:
     return False

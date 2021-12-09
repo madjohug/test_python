@@ -6,9 +6,11 @@ from datetime import datetime
 import pandas as pd
 
 #%%
+now = datetime.fromtimestamp(time.time()).replace(second=0, microsecond=0)
+print("now", now)
+
 def loop():
-  threading.Timer(1.0, loop).start()
-  
+  threading.Timer(2.0, loop).start()
   t = float(round(time.time()))-0.5*3600 # - 30 minutes
 
   klines = requests.get("https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=1m&startTime={t}").json()
@@ -23,7 +25,7 @@ def loop():
 
   df = df.drop(columns=['qas', 'not', 'tb', 'tq', 'i', 'Volume', 'Closetime'])
 
-  print(df.iloc[-1]['Close'])
+  print(df.index[len(df) - 1])
 
 loop()
 

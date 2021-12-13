@@ -1,11 +1,9 @@
-#%%
 import threading
 import time
 import requests 
 from datetime import datetime, timedelta
 import pandas as pd
 
-#%%
 now = datetime.fromtimestamp(time.time()).replace(second=0, microsecond=0) + timedelta(hours=-1)
 
 def loop():
@@ -24,10 +22,9 @@ def loop():
 
   df = df.drop(columns=['qas', 'not', 'tb', 'tq', 'i', 'Volume', 'Closetime'])
   print(df.iloc[-1]['Close'])
+  
 
-  # if(now != df.index[len(df) - 1]): now = df.index[len(df) - 1]
+
 
   
 loop()
-
-# %%

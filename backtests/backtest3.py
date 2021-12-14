@@ -7,7 +7,7 @@ import ta
 #%%
 client = Client()
 
-klines = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_1MINUTE, start_str="1st September 2021")
+klines = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_1MINUTE, start_str="1st December 2021")
 datas = pd.DataFrame(klines, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Closetime', 'QAV', 'NofTrades', 'tbase', 'tquote', 'ignore'])
 datas['High'] = pd.to_numeric(datas['High'])
 datas['Low'] = pd.to_numeric(datas['Low'])
@@ -113,7 +113,7 @@ for x, row in dcp.iterrows():
     myrow = {'date': x, 'type': "TAKEPROFIT", 'price': sellprice, 'amount': "", 'sans_frais': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt}
     result = result.append(myrow, ignore_index=True)
 
-  #Vente classique
+  # #Vente classique
   elif (canbuy == False and coin > 0 and sellCondition(row, previousrow) == True):
     sellprice = row['Close']
 

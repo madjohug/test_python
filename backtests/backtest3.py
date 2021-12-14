@@ -2,18 +2,12 @@
 
 import pandas as pd
 from binance.client import Client
-from flask import Flask, jsonify, app
-from pandas.core.frame import DataFrame
 import ta
-import numpy as np
-from scipy.stats import linregress
-from matplotlib import colors, pyplot, markers
-from williams_fractal import wilFractal
 
 #%%
 client = Client()
 
-klines = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_1HOUR, start_str="07th December 2021")
+klines = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_1MINUTE, start_str="1st September 2021")
 datas = pd.DataFrame(klines, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Closetime', 'QAV', 'NofTrades', 'tbase', 'tquote', 'ignore'])
 datas['High'] = pd.to_numeric(datas['High'])
 datas['Low'] = pd.to_numeric(datas['Low'])
@@ -29,10 +23,10 @@ datas = datas.drop(columns=['QAV', 'NofTrades', 'tbase', 'tquote', 'ignore', 'Cl
 dcp = datas.copy()
 
 smawindow = 10
-rsiwindow = 14
+rsiwindow = 20
 
 dcp["SMA"] = ta.trend.sma_indicator(dcp['Close'], window=smawindow)
-dcp["RSI"] = ta.momentum.rsi(dcp['Close'], window=20)
+dcp["RSI"] = ta.momentum.rsi(dcp['Close'], window=rsiwindow)
 
 stoch = ta.momentum.StochasticOscillator(dcp['High'], dcp['Low'], dcp['Close'], window=rsiwindow, smooth_window=3)
 dcp["STOCH_K"] = stoch.stoch()
@@ -41,7 +35,7 @@ print(dcp)
 
 
 #BOUCLE
-usdt = 10000
+usdt = 1000
 startusdt = usdt
 
 taxe = 0.0007
@@ -63,7 +57,7 @@ previousrow = dcp.iloc[0]
 
 def buyCondition(row, prev):
   if (row['STOCH_K'] > row['STOCH_D'] and prev['STOCH_K'] < prev['STOCH_D'] and row['STOCH_K'] < 20
-    and row["SMA"] > row["Close"] and prev["SMA"] < prev["Close"] and row["SMA"] > prev["SMA"]
+    and row["SMA"] > row["Close"]
     and row["RSI"] < 30):
     return True
   else:
@@ -141,7 +135,6 @@ for x, row in dcp.iterrows():
 print("USDT AU DEBUT : ", startusdt)
 print("USDT A LA FIN : ", usdt)
 
-print("EN HOLD : ", float("{:.3f}".format(startcoin * dcp.iloc[dcp.shape[0] - 1]['Close'])))
 print(result['type'].value_counts())
 
 print(result)

@@ -51,7 +51,7 @@ tptaux = 0.1
 canbuy = True
 
 result = None
-result = pd.DataFrame(columns=['date', 'type', 'price', 'amount', 'sans_frais', 'coins', 'frais', 'usdt'])
+result = pd.DataFrame(columns=['date', 'type', 'price', 'amount', 'coins', 'frais', 'usdt'])
 
 previousrow = dcp.iloc[0]
 
@@ -84,7 +84,7 @@ for x, row in dcp.iterrows():
 
     canbuy = False
 
-    myrow = {'date': x, 'type': "BUY", 'price': buyprice, 'amount': prevusdt, 'sans_frais': usdt, 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt}
+    myrow = {'date': x, 'type': "BUY", 'price': buyprice, 'amount': prevusdt, 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt}
     result = result.append(myrow, ignore_index=True)
 
   #StopLoss
@@ -97,7 +97,7 @@ for x, row in dcp.iterrows():
 
     canbuy = True
 
-    myrow = {'date': x, 'type': "STOPLOSS", 'price': sellprice, 'amount': "", 'sans_frais': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt}
+    myrow = {'date': x, 'type': "STOPLOSS", 'price': sellprice, 'amount': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt}
     result = result.append(myrow, ignore_index=True)
 
   # #TakeProfit
@@ -110,7 +110,7 @@ for x, row in dcp.iterrows():
 
     canbuy = True
 
-    myrow = {'date': x, 'type': "TAKEPROFIT", 'price': sellprice, 'amount': "", 'sans_frais': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt}
+    myrow = {'date': x, 'type': "TAKEPROFIT", 'price': sellprice, 'amount': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt}
     result = result.append(myrow, ignore_index=True)
 
   # #Vente classique
@@ -126,7 +126,7 @@ for x, row in dcp.iterrows():
 
     canbuy = True
 
-    myrow = {'date': x, 'type': "SELL", 'price': sellprice, 'amount': "", 'sans_frais': sansfrais, 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt}
+    myrow = {'date': x, 'type': "SELL", 'price': sellprice, 'amount': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt}
     result = result.append(myrow, ignore_index=True)
 
   previousrow = row

@@ -14,16 +14,22 @@ def buyCondition(row, prev):
   else:
     return False
 
-def sellCondition(row):
-  if (row["RSI"] > 70):
+def sellCondition(row, prev):
+  if (row["RSI"] > 70 and prev["RSI"] <= 70):
     return True
   else:
     return False
 
+def writeInFile(filename, message):
+  file = open(filename, "a")
+  file.write("\n" + message)
+  file.close()
+
 now = datetime.fromtimestamp(time.time()).replace(second=0, microsecond=0) + timedelta(hours=-1)
 
 def loop(savedTime, canBuy):
-
+  threading.Timer(60.0, loop, [savedTime, canBuy]).start()
+  
   t = float(round(time.time()))-0.5*3600 # - 30 minutes
 
   klines = requests.get("https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=1m&startTime={t}").json()
@@ -37,10 +43,10 @@ def loop(savedTime, canBuy):
   df.index = pd.to_datetime(df.index, unit="ms")
 
   smawindow = 10
-  rsiwindow = 20
+  rsiwindow = 14
 
 
-  print(df.iloc[-1]['Close'])
+  print(df.iloc[-1]['Close'], " à : ", df.index[len(df) - 1].strftime("%H:%M:%S"))
 
   # Sinon, je check si je peux acheter, si je suis à une nouvelle minute
   if (canBuy == True):
@@ -53,7 +59,7 @@ def loop(savedTime, canBuy):
       df["STOCH_K"] = stoch.stoch()
       df["STOCH_D"] = stoch.stoch_signal()
       if (buyCondition(df.iloc[-1], df.iloc[-2])):
-        print("ACHAT A LA DATE : ", df.index[len(df) - 1], "AU PRIX : ", df.iloc[-1]["Close"])
+        writeInFile("log.txt", "Achat le : " + df.index[len(df) - 1].strftime("%m/%d/%Y, %H:%M:%S") +  " à : " + str(df.iloc[-1]["Close"]))
         canBuy = False
 
   else:
@@ -65,13 +71,14 @@ def loop(savedTime, canBuy):
     df["STOCH_D"] = stoch.stoch_signal()
 
   # Si j'ai un ordre en cours, je check chaque seconde si je dois vendre
-    if (sellCondition(df.iloc[-1])):
-      print("VENTE A LA DATE : ", df.index[len(df) - 1], "AU PRIX : ", df.iloc[-1]["Close"])
+    if (sellCondition(df.iloc[-1], df.iloc[-2])):
+      writeInFile("log.txt", "Vente le : " + df.index[len(df) - 1].strftime("%m/%d/%Y, %H:%M:%S") + " à : " + str(df.iloc[-1]["Close"]))
       canBuy == True
 
   savedTime = df.index[len(df) - 1]
-  
-  threading.Timer(1.0, loop, [savedTime, canBuy]).start()
 
-  
-loop(now, False)
+file = open("log.txt", "a")
+file.write("\nLANCEMENT DU BOT LE : " + now.strftime("%m/%d/%Y, %H:%M:%S"))
+file.close()
+
+loop(now, True)

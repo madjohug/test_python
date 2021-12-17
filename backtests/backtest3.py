@@ -7,7 +7,7 @@ import ta
 #%%
 client = Client()
 
-klines = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_1MINUTE, start_str="1st December 2021")
+klines = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_1MINUTE, start_str="1st November 2021")
 datas = pd.DataFrame(klines, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Closetime', 'QAV', 'NofTrades', 'tbase', 'tquote', 'ignore'])
 datas['High'] = pd.to_numeric(datas['High'])
 datas['Low'] = pd.to_numeric(datas['Low'])
@@ -23,7 +23,7 @@ datas = datas.drop(columns=['QAV', 'NofTrades', 'tbase', 'tquote', 'ignore', 'Cl
 dcp = datas.copy()
 
 smawindow = 10
-rsiwindow = 20
+rsiwindow = 14
 
 dcp["SMA"] = ta.trend.sma_indicator(dcp['Close'], window=smawindow)
 dcp["RSI"] = ta.momentum.rsi(dcp['Close'], window=rsiwindow)
@@ -53,6 +53,7 @@ canbuy = True
 result = None
 result = pd.DataFrame(columns=['date', 'type', 'price', 'amount', 'coins', 'frais', 'usdt'])
 
+plus_haut = usdt
 previousrow = dcp.iloc[0]
 
 def buyCondition(row, prev):
@@ -110,6 +111,9 @@ for x, row in dcp.iterrows():
 
     canbuy = True
 
+    # set le max
+    if (usdt > plus_haut): plus_haut = usdt
+
     myrow = {'date': x, 'type': "TAKEPROFIT", 'price': sellprice, 'amount': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt}
     result = result.append(myrow, ignore_index=True)
 
@@ -126,16 +130,22 @@ for x, row in dcp.iterrows():
 
     canbuy = True
 
+    # set le max
+    if (usdt > plus_haut): plus_haut = usdt
+
     myrow = {'date': x, 'type': "SELL", 'price': sellprice, 'amount': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt}
     result = result.append(myrow, ignore_index=True)
 
   previousrow = row
 
 
+print("\n\n")
 print("USDT AU DEBUT : ", startusdt)
 print("USDT A LA FIN : ", usdt)
-
+print("POURCENTAGE DE GAIN : ", ((usdt / startusdt) - 1) * 100, "%")
+print("PLUS HAUT MONTANT ATTEINT : ", plus_haut)
 print(result['type'].value_counts())
+print("\n\n")
 
 print(result)
 # %%

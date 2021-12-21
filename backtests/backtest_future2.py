@@ -8,7 +8,7 @@ import ta
 #%%
 client = Client()
 
-klines = client.get_historical_klines("ETHUSDT", Client.KLINE_INTERVAL_1MINUTE, start_str="1st September 2021")
+klines = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_1MINUTE, start_str="1st September 2021")
 datas = pd.DataFrame(klines, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Closetime', 'QAV', 'NofTrades', 'tbase', 'tquote', 'ignore'])
 datas['High'] = pd.to_numeric(datas['High'])
 datas['Low'] = pd.to_numeric(datas['Low'])
@@ -25,13 +25,16 @@ dcp = datas.copy()
 
 smawindow = 10
 rsiwindow = 14
+smalong = 20
 
 dcp["SMA"] = ta.trend.sma_indicator(dcp['Close'], window=smawindow)
+dcp["SMA_L"] = ta.trend.sma_indicator(dcp['Close'], window=smalong)
 dcp["RSI"] = ta.momentum.rsi(dcp['Close'], window=rsiwindow)
 
 stoch = ta.momentum.StochasticOscillator(dcp['High'], dcp['Low'], dcp['Close'], window=rsiwindow, smooth_window=3)
 dcp["STOCH_K"] = stoch.stoch()
 dcp["STOCH_D"] = stoch.stoch_signal()
+dcp["TREND"] = dcp.iloc[-smalong]["SMA_L"] - dcp["SMA_L"]
 print(dcp)
 
 
@@ -39,7 +42,7 @@ print(dcp)
 usdt = 1000
 startusdt = usdt
 
-taxe = 0.0007
+taxe = 0.004
 
 startcoin = ((usdt * taxe) / dcp.iloc[0]['Close'])
 coin = 0
@@ -47,27 +50,32 @@ coin = 0
 maker = 0.0005
 
 sltaux = 0.02
-tptaux = 0.1
-levier = 2
+tptaux = 0.02
+levier = 5
 
 canbuy = True
 buytype = 0 # 1 pour long et -1 pour short
 oldamount = usdt
 shortbuyprice = 0
 
+lastbuytime = dcp.iloc[0].index
+
 bontrade = 0
 mauvaistrade = 0
 
 result = None
-result = pd.DataFrame(columns=['date', 'type', 'price', 'amount', 'coins', 'frais', 'usdt'])
+result = pd.DataFrame(columns=['date', 'type', 'price', 'amount', 'coins', 'frais', 'usdt', 'total'])
 
 plus_haut = usdt
+plus_bas = usdt
+
 previousrow = dcp.iloc[0]
 
 def buyLongCondition(row, prev):
   if (row['STOCH_K'] > row['STOCH_D'] and prev['STOCH_K'] < prev['STOCH_D'] and row['STOCH_K'] < 20
     and row["SMA"] > row["Close"]
-    and row["RSI"] < 30):
+    and row["RSI"] < 30
+    and row["TREND"] > 0):
     return True
   else:
     return False
@@ -81,7 +89,8 @@ def sellLongCondition(row, prev):
 def buyShortCondition(row, prev):
   if (row['STOCH_K'] < row['STOCH_D'] and prev['STOCH_K'] > prev['STOCH_D'] and row['STOCH_K'] > 80
     and row["SMA"] < row["Close"]
-    and row["RSI"] > 70):
+    and row["RSI"] > 70
+    and row["TREND"] < 0):
     return True
   else:
     return False
@@ -109,7 +118,9 @@ for x, row in dcp.iterrows():
     canbuy = False
     buytype = 1
 
-    myrow = {'date': x, 'type': "BUY LONG", 'price': buyprice, 'amount': prevusdt, 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt}
+    lastbuytime = x
+
+    myrow = {'date': x, 'type': "BUY LONG", 'price': buyprice, 'amount': prevusdt, 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt, 'total': oldamount}
     result = result.append(myrow, ignore_index=True)
 
   # Buy short
@@ -129,7 +140,9 @@ for x, row in dcp.iterrows():
     oldamount = prevusdt
     shortbuyprice = buyprice
 
-    myrow = {'date': x, 'type': "BUY SHORT", 'price': buyprice, 'amount': prevusdt, 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt}
+    lastbuytime = x
+
+    myrow = {'date': x, 'type': "BUY SHORT", 'price': buyprice, 'amount': prevusdt, 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt, 'total': oldamount}
     result = result.append(myrow, ignore_index=True)
 
   #StopLoss long
@@ -144,9 +157,15 @@ for x, row in dcp.iterrows():
     canbuy = True
     buytype = 0
 
+    # set le min
+    if (usdt < plus_bas):
+      plus_bas = usdt
+
+    print("sl long", x, " après avoir acheté le ", lastbuytime)
+
     mauvaistrade += 1
 
-    myrow = {'date': x, 'type': "STOPLOSS LONG", 'price': sellprice, 'amount': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt}
+    myrow = {'date': x, 'type': "STOPLOSS LONG", 'price': sellprice, 'amount': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt, 'total': usdt}
     result = result.append(myrow, ignore_index=True)
   
   #StopLoss short
@@ -161,9 +180,15 @@ for x, row in dcp.iterrows():
     canbuy = True
     buytype = 0
 
+    # set le min
+    if (usdt < plus_bas): 
+      plus_bas = usdt
+    
+    print("sl short", x, " après avoir acheté le ", lastbuytime)
+
     mauvaistrade += 1
 
-    myrow = {'date': x, 'type': "STOPLOSS SHORT", 'price': sellprice, 'amount': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt}
+    myrow = {'date': x, 'type': "STOPLOSS SHORT", 'price': sellprice, 'amount': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt, 'total': usdt}
     result = result.append(myrow, ignore_index=True)
 
   # TakeProfit long
@@ -183,7 +208,7 @@ for x, row in dcp.iterrows():
     # set le max
     if (usdt > plus_haut): plus_haut = usdt
 
-    myrow = {'date': x, 'type': "TAKEPROFIT LONG", 'price': sellprice, 'amount': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt}
+    myrow = {'date': x, 'type': "TAKEPROFIT LONG", 'price': sellprice, 'amount': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt, 'total': usdt}
     result = result.append(myrow, ignore_index=True)
 
   # TakeProfit short
@@ -203,7 +228,7 @@ for x, row in dcp.iterrows():
     # set le max
     if (usdt > plus_haut): plus_haut = usdt
 
-    myrow = {'date': x, 'type': "TAKEPROFIT SHORT", 'price': sellprice, 'amount': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt}
+    myrow = {'date': x, 'type': "TAKEPROFIT SHORT", 'price': sellprice, 'amount': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt, 'total': usdt}
     result = result.append(myrow, ignore_index=True)
 
   # Vente classique long
@@ -224,9 +249,13 @@ for x, row in dcp.iterrows():
     canbuy = True
     buytype = 0
 
+    # set le max
     if (usdt > plus_haut): plus_haut = usdt
 
-    myrow = {'date': x, 'type': "SELL LONG", 'price': sellprice, 'amount': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt}
+    # set le min
+    if (usdt < plus_bas): plus_bas = usdt
+
+    myrow = {'date': x, 'type': "SELL LONG", 'price': sellprice, 'amount': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt, 'total': usdt}
     result = result.append(myrow, ignore_index=True)
 
   # Vente classique short
@@ -249,7 +278,7 @@ for x, row in dcp.iterrows():
 
     if (usdt > plus_haut): plus_haut = usdt
 
-    myrow = {'date': x, 'type': "SELL SHORT", 'price': sellprice, 'amount': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt}
+    myrow = {'date': x, 'type': "SELL SHORT", 'price': sellprice, 'amount': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt, 'total': usdt}
     result = result.append(myrow, ignore_index=True)
     
 
@@ -262,15 +291,21 @@ print("\n")
 print("------------ BILAN --------------")
 print("USDT AU DEBUT : ", startusdt)
 print("USDT A LA FIN : ", finalv)
+print("Nombre d'opérations : ", len(result))
 print("\n")
 print("POURCENTAGE DE GAIN : ", float("{:.1f}".format(((finalv / startusdt) - 1) * 100)), "%")
 print("PLUS HAUT MONTANT ATTEINT : ", plus_haut)
+print("PLUS BAS MONTANT ATTEINT : ", plus_bas)
 print("\n")
 print("BONS TRADES : ", bontrade)
 print("MAUVAIS TRADES : ", mauvaistrade)
+print("\nWin rate : ", float("{:.1f}".format((1-(mauvaistrade / bontrade)) * 100)), "%")
 print("\n")
 print(result['type'].value_counts())
 print("\n")
+
+plot = result.plot(x="date", y="total", kind="area", figsize=(20,10))
+print(plot)
 
 print(result)
 # %%

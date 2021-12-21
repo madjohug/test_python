@@ -47,6 +47,7 @@ maker = 0.0005
 
 sltaux = 0.02
 tptaux = 0.1
+amounttakeprofit = 1000000
 
 canbuy = True
 
@@ -83,10 +84,18 @@ for x, row in dcp.iterrows():
     stoploss = buyprice - sltaux * buyprice
     takeprofit = buyprice + tptaux * buyprice
 
+    amounttakeprofit = buyprice + (sltaux * buyprice)
+
     canbuy = False
 
     myrow = {'date': x, 'type': "BUY", 'price': buyprice, 'amount': prevusdt, 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt}
     result = result.append(myrow, ignore_index=True)
+
+  # #Mise à jour du takeprofit et stoploss
+  # elif (canbuy == False and coin > 0 and row["Close"] > amounttakeprofit):
+  #   takeprofit = row["Close"] + (row["Close"] * tptaux)
+  #   amounttakeprofit = row["Close"] + (row["Close"] * sltaux)
+  #   stoploss = row["Close"] - (sltaux * row["Close"])
 
   #StopLoss
   elif (coin > 0 and stoploss > row['Low']):

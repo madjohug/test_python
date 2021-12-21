@@ -7,7 +7,7 @@ import ta
 #%%
 client = Client()
 
-klines = client.get_historical_klines("ETHUSDT", Client.KLINE_INTERVAL_1MINUTE, start_str="1st September 2021")
+klines = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_1MINUTE, start_str="1st December 2021")
 datas = pd.DataFrame(klines, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Closetime', 'QAV', 'NofTrades', 'tbase', 'tquote', 'ignore'])
 datas['High'] = pd.to_numeric(datas['High'])
 datas['Low'] = pd.to_numeric(datas['Low'])
@@ -40,7 +40,7 @@ print(dcp)
 usdt = 1000
 startusdt = usdt
 
-taxe = 0.0007
+taxe = 0.004
 
 startcoin = ((usdt * taxe) / dcp.iloc[0]['Close'])
 coin = 0
@@ -49,7 +49,7 @@ maker = 0.0005
 
 sltaux = 0.02
 tptaux = 0.1
-levier = 5
+levier = 2
 
 canbuy = True
 buytype = 0 # 1 pour long et -1 pour short

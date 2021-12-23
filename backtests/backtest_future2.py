@@ -2,13 +2,12 @@
 
 import pandas as pd
 from binance.client import Client
-from scipy.stats.morestats import boxcox_normplot
 import ta
 
 #%%
 client = Client()
 
-klines = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_1MINUTE, start_str="1st September 2021")
+klines = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_1MINUTE, start_str="1st March 2021")
 datas = pd.DataFrame(klines, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Closetime', 'QAV', 'NofTrades', 'tbase', 'tquote', 'ignore'])
 datas['High'] = pd.to_numeric(datas['High'])
 datas['Low'] = pd.to_numeric(datas['Low'])
@@ -26,9 +25,12 @@ dcp = datas.copy()
 smawindow = 10
 rsiwindow = 14
 smalong = 20
+smavlong = 40
 
 dcp["SMA"] = ta.trend.sma_indicator(dcp['Close'], window=smawindow)
 dcp["SMA_L"] = ta.trend.sma_indicator(dcp['Close'], window=smalong)
+dcp["SMA_VL"] = ta.trend.sma_indicator(dcp['Close'], window=smavlong)
+
 dcp["RSI"] = ta.momentum.rsi(dcp['Close'], window=rsiwindow)
 
 stoch = ta.momentum.StochasticOscillator(dcp['High'], dcp['Low'], dcp['Close'], window=rsiwindow, smooth_window=3)
@@ -39,7 +41,7 @@ print(dcp)
 
 
 #BOUCLE
-usdt = 1000
+usdt = 100
 startusdt = usdt
 
 taxe = 0.004
@@ -49,8 +51,8 @@ coin = 0
 
 maker = 0.0005
 
-sltaux = 0.02
-tptaux = 0.02
+sltaux = 0.005
+tptaux = 0.002
 levier = 5
 
 canbuy = True
@@ -75,7 +77,8 @@ def buyLongCondition(row, prev):
   if (row['STOCH_K'] > row['STOCH_D'] and prev['STOCH_K'] < prev['STOCH_D'] and row['STOCH_K'] < 20
     and row["SMA"] > row["Close"]
     and row["RSI"] < 30
-    and row["TREND"] > 0):
+    and row["TREND"] > 0
+    and row["SMA_L"] < row["SMA_VL"]):
     return True
   else:
     return False
@@ -90,7 +93,8 @@ def buyShortCondition(row, prev):
   if (row['STOCH_K'] < row['STOCH_D'] and prev['STOCH_K'] > prev['STOCH_D'] and row['STOCH_K'] > 80
     and row["SMA"] < row["Close"]
     and row["RSI"] > 70
-    and row["TREND"] < 0):
+    and row["TREND"] < 0
+    and row["SMA_L"] > row["SMA_VL"]):
     return True
   else:
     return False

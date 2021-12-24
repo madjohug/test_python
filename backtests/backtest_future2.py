@@ -7,7 +7,9 @@ import ta
 #%%
 client = Client()
 
-klines = client.get_historical_klines("BNBUSDT", Client.KLINE_INTERVAL_1MINUTE, start_str="1st November 2021", end_str="1st December 2021")
+startdate = "1st January 2021"
+
+klines = client.get_historical_klines("BNBUSDT", Client.KLINE_INTERVAL_1MINUTE, start_str=startdate)
 datas = pd.DataFrame(klines, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Closetime', 'QAV', 'NofTrades', 'tbase', 'tquote', 'ignore'])
 datas['High'] = pd.to_numeric(datas['High'])
 datas['Low'] = pd.to_numeric(datas['Low'])
@@ -41,15 +43,13 @@ print(dcp)
 
 
 #BOUCLE
-usdt = 1000
+usdt = 100
 startusdt = usdt
 
 taxe = 0.004
 
 startcoin = ((usdt * taxe) / dcp.iloc[0]['Close'])
 coin = 0
-
-maker = 0.0005
 
 #ETH
 sltaux = 0.006
@@ -299,6 +299,8 @@ finalv = usdt
 if (result.iloc[-1]["type"] in ["BUY SHORT", "BUY LONG"]): finalv = result.iloc[-2]["usdt"]
 print("\n")
 print("------------ BILAN --------------")
+print("\nDonnées entrées pour ce test : ", "\n    Stoploss : ", sltaux, "\n    Takeprofit : ", tptaux, "\n    Levier : ", levier)
+print("\nDate de début : ", startdate, "\n\n")
 print("USDT AU DEBUT : ", startusdt)
 print("USDT A LA FIN : ", finalv)
 print("Nombre d'opérations : ", len(result))

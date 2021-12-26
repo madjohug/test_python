@@ -34,3 +34,10 @@ Lancement du bot le : 12/17/2021, 15:18:00
 Paire utilisée : ETHUSDT
 Lancement du bot le : 12/17/2021, 15:19:00
 Paire utilisée : ETHUSDT
+Lancement du bot le : 12/25/2021, 22:18:00
+Paire utilisée : BTCUSDT
+Lancement du bot le : 12/25/2021, 22:19:00
+Paire utilisée : BTCUSDT
+
+Lancement du bot le : 12/26/2021, 17:38:00
+Paire utilisée : BTCUSDT

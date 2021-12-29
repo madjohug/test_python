@@ -7,9 +7,10 @@ import ta
 #%%
 client = Client()
 
-startdate = "1st August 2021"
+startdate = "13th December 2021"
+enddate = "20th December 2021"
 
-klines = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_1MINUTE, start_str=startdate)
+klines = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_1MINUTE, start_str=startdate, end_str=enddate)
 datas = pd.DataFrame(klines, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Closetime', 'QAV', 'NofTrades', 'tbase', 'tquote', 'ignore'])
 datas['High'] = pd.to_numeric(datas['High'])
 datas['Low'] = pd.to_numeric(datas['Low'])
@@ -296,6 +297,10 @@ for x, row in dcp.iterrows():
 
 
 finalv = usdt
+if (bontrade == 0):
+  print("\nBon trade était à 0")
+  bontrade = 1
+
 if (result.iloc[-1]["type"] in ["BUY SHORT", "BUY LONG"]): finalv = result.iloc[-2]["usdt"]
 print("\n")
 print("------------ BILAN --------------")

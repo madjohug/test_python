@@ -50,9 +50,9 @@ stoploss = 0
 takeprofit = 100000
 
 symbol = sys.argv[1]
-sltaux = sys.argv[3]
-tptaux = sys.argv[2]
-levier = sys.argv[4]
+sltaux = float(sys.argv[3])
+tptaux = float(sys.argv[2])
+levier = float(sys.argv[4])
 filename = "log_"+symbol+".txt"
 
 def loop(savedTime, canBuy, symbol, buytype, stoploss, takeprofit):
@@ -137,21 +137,25 @@ def loop(savedTime, canBuy, symbol, buytype, stoploss, takeprofit):
   # TakeProfit long
     elif(buytype == 2 and closeprice > takeprofit):
       writeInFile(filename, "Takeprofit long le : " + df.index[len(df) - 1].strftime("%m/%d/%Y, %H:%M:%S") +  " à : " + str(df.iloc[-1]["Close"]))
+      buytype = 0
       canBuy = True
 
   # TakeProfit short
     elif(buytype == -2 and closeprice < takeprofit):
       writeInFile(filename, "Takeprofit short le : " + df.index[len(df) - 1].strftime("%m/%d/%Y, %H:%M:%S") +  " à : " + str(df.iloc[-1]["Close"]))
+      buytype = 0
       canBuy = True
 
   # Vente classique long
     elif(buytype == 2 and sellLongCondition(df.iloc[-1], df.iloc[-2])):
       writeInFile(filename, "Vente long le : " + df.index[len(df) - 1].strftime("%m/%d/%Y, %H:%M:%S") +  " à : " + str(df.iloc[-1]["Close"]))
+      buytype = 0
       canBuy = True
 
   # Vente classique short
     elif(buytype == -2 and sellShortCondition(df.iloc[-1])):
       writeInFile(filename, "Vente short le : " + df.index[len(df) - 1].strftime("%m/%d/%Y, %H:%M:%S") +  " à : " + str(df.iloc[-1]["Close"]))
+      buytype = 0
       canBuy = True
 
   savedTime = df.index[len(df) - 1]

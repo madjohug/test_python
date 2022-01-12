@@ -1,0 +1,15 @@
+
+Lancement du bot le : 01/12/2022, 13:16:00
+Données entrées pour ce bot : 
+    Stoploss : 0.01
+    Takeprofit : 0.02
+    Levier : 3.0
+Paire utilisée : ETHUSDT
+Solde de départ : 100
+Lancement du bot le : 01/12/2022, 13:17:00
+Données entrées pour ce bot : 
+    Stoploss : 0.01
+    Takeprofit : 0.02
+    Levier : 3.0
+Paire utilisée : ETHUSDT
+Solde de départ : 100

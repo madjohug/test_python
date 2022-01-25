@@ -7,7 +7,7 @@ import ta
 #%%
 client = Client()
 
-startdate = "15th December 2021"
+startdate = "12th January 2022"
 
 klines = client.get_historical_klines("ETHUSDT", Client.KLINE_INTERVAL_1MINUTE, start_str=startdate)
 datas = pd.DataFrame(klines, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Closetime', 'QAV', 'NofTrades', 'tbase', 'tquote', 'ignore'])
@@ -61,14 +61,14 @@ startcoin = ((usdt * taxe) / dcp.iloc[0]['Close'])
 coin = 0
 
 #ETH
-sltaux = 0.01
-tptaux = 0.02
-levier = 3
+# sltaux = 0.006
+# tptaux = 0.002
+# levier = 5
 
 # # #BTC
-# sltaux = 0.01
-# tptaux = 0.02
-# levier = 3
+sltaux = 0.01
+tptaux = 0.005
+levier = 4
 
 canbuy = True
 buytype = 0 # 1 pour long et -1 pour short

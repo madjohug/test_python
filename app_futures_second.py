@@ -192,6 +192,9 @@ def loop(savedTime, canBuy, symbol, buytype, stoploss, takeprofit, wallet, price
   except exceptions.BinanceAPIException as e:
     file.write("\nException survenue : \nCode : " + e.status_code + "\nMessage : " + e.message)
     threading.Timer(1.0, loop, [savedTime, canBuy, symbol, buytype, stoploss, takeprofit, wallet, pricebought]).start()
+  except requests.exceptions.ConnectionError as e:
+    file.write("\nException survenue : " + e)
+    threading.Timer(1.0, loop, [savedTime, canBuy, symbol, buytype, stoploss, takeprofit, wallet, pricebought]).start()
 
 file = open(filename, "a")
 file.write("\nLancement du bot le : " + now.strftime("%m/%d/%Y, %H:%M:%S"))

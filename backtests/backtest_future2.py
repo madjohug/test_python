@@ -5,11 +5,12 @@ from binance.client import Client
 import ta
 
 #%%
-client = Client()
+client = Client("Tr80L4Fnm2g4m8gnI3YlrCGR0XhlW9shMmVw01IYrE6Kjrd5WRdisaFIGguwp1jN",
+                "D5GHjiCbJx1eR69hHRGY6Gzc9HGTZF2LpzMuPxzDFvqd9PdWGWsv4oBLGUggAHDH")
 
-startdate = "12th January 2022"
+startdate = "01st February 2022"
 
-klines = client.get_historical_klines("ETHUSDT", Client.KLINE_INTERVAL_1MINUTE, start_str=startdate)
+klines = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_1MINUTE, start_str=startdate)
 datas = pd.DataFrame(klines, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Closetime', 'QAV', 'NofTrades', 'tbase', 'tquote', 'ignore'])
 datas['High'] = pd.to_numeric(datas['High'])
 datas['Low'] = pd.to_numeric(datas['Low'])
@@ -61,14 +62,14 @@ startcoin = ((usdt * taxe) / dcp.iloc[0]['Close'])
 coin = 0
 
 #ETH
-# sltaux = 0.006
-# tptaux = 0.002
-# levier = 5
+sltaux = 0.006
+tptaux = 0.002
+levier = 5
 
 # # #BTC
-sltaux = 0.01
-tptaux = 0.005
-levier = 4
+# sltaux = 0.01
+# tptaux = 0.005
+# levier = 4
 
 canbuy = True
 buytype = 0 # 1 pour long et -1 pour short

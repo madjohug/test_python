@@ -1,83 +1,206 @@
-#%%
-
-import pandas as pd
-from binance.client import Client
-from flask import Flask, jsonify, app
-from pandas.core.frame import DataFrame
-import ta
-import numpy as np
-from scipy.stats import linregress
-from matplotlib import colors, pyplot, markers
-import sched, time
 import threading
+import time
+from typing import final
+import requests 
+from datetime import datetime, timedelta
+import pandas as pd
+import ta
+import sys
+from binance import exceptions
 
-
-client = Client()
-canBuy = True
-
-def BuyCondition(row, prev):
-  if (row['RSI'] > 50 and row['SQZ'] > prev['SQZ'] and row['SQZ'] < 0.0):
+def buyLongCondition(row, prev):
+  if (row['STOCH_K'] > row['STOCH_D'] and prev['STOCH_K'] < prev['STOCH_D'] and row['STOCH_K'] < 20
+    and row["SMA"] > row["Close"]
+    and row["RSI"] < 30
+    and row["TREND"] > 0
+    and row["SMA_L"] < row["SMA_VL"]):
     return True
   else:
     return False
 
-
-def SellCondition(row, prev):
-  if (row['RSI'] > 20 and row['SQZ'] < prev['SQZ'] and row['SQZ'] < 0.0 and prev['SQZ'] > 0.0):
+def sellLongCondition(row, prev):
+  if (row["RSI"] > 70):
     return True
   else:
     return False
 
-async def do_something(): 
-  wallet = 1000
-  coin = 0
-  print("APPEL")
-  klines = await client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_1MINUTE, start_str="29th November 2021")
-  datas = pd.DataFrame(klines, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Closetime', 'QAV', 'NofTrades', 'tbase', 'tquote', 'ignore'])
-  datas = datas.set_index(datas['timestamp'])
-  datas.index = pd.to_datetime(datas.index, unit="ms")
+def buyShortCondition(row, prev):
+  if (row['STOCH_K'] < row['STOCH_D'] and prev['STOCH_K'] > prev['STOCH_D'] and row['STOCH_K'] > 80
+    and row["SMA"] < row["Close"]
+    and row["RSI"] > 70
+    and row["TREND"] < 0
+    and row["SMA_L"] > row["SMA_VL"]):
+    return True
+  else:
+    return False
 
-  bblength = 20
-  bbmult = 2.0
+def sellShortCondition(row):
+  if (row["RSI"] < 30):
+    return True
+  else:
+    return False
 
-  kclength = 20
+def writeInFile(filename, message):
+  file = open(filename, "a")
+  file.write("\n" + message)
+  file.close()
 
-  usetruerange = True
+now = datetime.fromtimestamp(time.time()).replace(second=0, microsecond=0) + timedelta(hours=-1)
 
-  bb = ta.volatility.BollingerBands(close=datas['Close'], window=bblength, window_dev=bbmult)
-  datas['BB_H'] = bb.bollinger_hband()
-  datas['BB_L'] = bb.bollinger_lband()
+buytype = 0
+stoploss = 0
+takeprofit = 100000
+wallet = 100
+pricebought = 1
 
-  kc = ta.volatility.KeltnerChannel(high=datas['High'], low=datas['Low'], close=datas['Close'], window=kclength, original_version=usetruerange)
-  datas['KC_H'] = kc.keltner_channel_hband()
-  datas['KC_L'] = kc.keltner_channel_lband()
-  print("dpfvn")
-  datas['RSI'] = ta.momentum.RSIIndicator(close=datas['Close'], window=14).rsi()
-  datas["SqzOn"] = ((datas["BB_L"] > datas["KC_L"]) & (datas["BB_H"] < datas["KC_H"]))
-  datas["SqzOff"] = ((datas["BB_L"] < datas["KC_L"]) & (datas["BB_H"] > datas["KC_H"]))
-  datas["NoSqz"] = ((datas["SqzOn"] == False) & (datas["SqzOff"] == False))
-  datas["highest"] = ta.volatility.donchian_channel_hband(high=datas['High'], low=datas['Low'], close=datas['Close'], window=kclength)
-  datas['lowest'] = ta.volatility.donchian_channel_lband(high=datas['High'], low=datas['Low'], close=datas['Close'], window=kclength)
-  datas["SMA2"] = ta.trend.sma_indicator(datas['Close'], window=kclength)
-  datas["AVG1"] = (datas["highest"].rolling(window=kclength).sum() + datas["lowest"].rolling(window=kclength).sum()) / (2*kclength)
-  datas["AVG2"] = (datas["AVG1"].rolling(window=kclength).sum() + datas["SMA2"].rolling(window=kclength).sum()) / (2*kclength)
-  datas['X'] = datas['Close'] - datas['AVG2']
-  datas['SClose'] = datas['X'] * datas['X']
-  datas["SLOPE"] = ( (kclength * datas['X'].rolling(kclength).sum() - (datas['X'].rolling(kclength).sum())) 
-                / (kclength * datas['SClose'].rolling(kclength).sum() - (datas['X'].rolling(kclength).sum() * datas['X'].rolling(kclength).sum())))
-  datas['INT'] = datas['X'] - datas['SLOPE']
-  datas["SQZ"] = datas['INT'] + datas['SLOPE'] * kclength
+symbol = sys.argv[1]
+tptaux = float(sys.argv[2])
+sltaux = float(sys.argv[3])
+levier = float(sys.argv[4])
+filename = sys.argv[5]
 
-  if (canBuy == True and wallet > 0 and BuyCondition(datas.iloc[len(datas) - 1], datas.iloc[len(datas) - 2]) == True):
-    print("ACHAT AU PRIX DE ", datas.iloc[-1]['Close'], " LE ", datas.iloc[-1]['timestamp'], " D'UN MONTANT DE ", wallet, " USDT")
-    coin = float(float(wallet) / float(datas.iloc[-1]['Close']))
-    wallet = 0
+def loop(savedTime, canBuy, symbol, buytype, stoploss, takeprofit, wallet, pricebought):
+  
+  t = float(round(time.time()))-0.75*3600 # - 45 minutes
 
-  elif(canBuy == False and SellCondition(datas.iloc[len(datas) - 1], datas.iloc[len(datas) - 2]) == True):
-    print("VENTE AU PRIX DE ", datas.iloc[-1]['Close'], " LE ", datas.iloc[-1]['timestamp'])
-    print("NOUVEAU SOLDE : ", (coin * datas.iloc[-1]['Close']))
-    coin = 0
-    wallet = float(float(coin) * float(datas.iloc[-1]['Close']))
+  url = ("https://fapi.binance.com/fapi/v1/klines?symbol=" + symbol + "&interval=1m&startTime=" + str(t))
+  try: 
+    klines = requests.get(url).json()
+    df = pd.DataFrame(klines, columns=['Opentime', 'Open', 'High', 'Low', 'Close', 'Volume', 'Closetime', 'qas', 'not', 'tb', 'tq', 'i'])
+    df['High'] = pd.to_numeric(df['High'])
+    df['Low'] = pd.to_numeric(df['Low'])
+    df['Close'] = pd.to_numeric(df['Close'])
+    df['Open'] = pd.to_numeric(df['Open'])
 
-threading.Timer(100, do_something).start()
-# %%
+    df = df.set_index(df['Opentime'])
+    df.index = pd.to_datetime(df.index, unit="ms")
+
+    smawindow = 10
+    rsiwindow = 14
+    smalong = 20
+    smavlong = 40
+
+    print(df.iloc[-1]['Close'], " à : ", df.index[len(df) - 1].strftime("%H:%M:%S"))
+
+    # Sinon, je check si je peux acheter, si je suis à une nouvelle minute
+    if (canBuy == True):
+        df["SMA"] = ta.trend.sma_indicator(df['Close'], window=smawindow)
+        df["SMA_L"] = ta.trend.sma_indicator(df['Close'], window=smalong)
+        df["SMA_VL"] = ta.trend.sma_indicator(df['Close'], window=smavlong)
+
+        df["RSI"] = ta.momentum.rsi(df['Close'], window=rsiwindow)
+
+        stoch = ta.momentum.StochasticOscillator(df['High'], df['Low'], df['Close'], window=rsiwindow, smooth_window=3)
+        df["STOCH_K"] = stoch.stoch()
+        df["STOCH_D"] = stoch.stoch_signal()
+        df["TREND"] = df.iloc[-smalong]["SMA_L"] - df["SMA_L"]
+
+        if (buyLongCondition(df.iloc[-1], df.iloc[-2])):
+          buyprice = df.iloc[-1]['Close']
+          pricebought = buyprice
+          stoploss = buyprice - sltaux * buyprice
+          takeprofit = buyprice + tptaux * buyprice
+          writeInFile(filename, "Achat long le : " + df.index[len(df) - 1].strftime("%m/%d/%Y, %H:%M:%S") +  " à : " + str(buyprice))
+          buytype = 2
+          canBuy = False
+
+        elif(buyShortCondition(df.iloc[-1], df.iloc[-2])):
+          buyprice = df.iloc[-1]['Close']
+          pricebought = buyprice
+          stoploss = buyprice + sltaux * buyprice
+          takeprofit = buyprice - tptaux * buyprice
+          writeInFile(filename, "Achat short le : " + df.index[len(df) - 1].strftime("%m/%d/%Y, %H:%M:%S") +  " à : " + str(buyprice))
+          buytype = -2
+          canBuy = False
+
+    else:
+      df["SMA"] = ta.trend.sma_indicator(df['Close'], window=smawindow)
+      df["SMA_L"] = ta.trend.sma_indicator(df['Close'], window=smalong)
+      df["SMA_VL"] = ta.trend.sma_indicator(df['Close'], window=smavlong)
+
+      df["RSI"] = ta.momentum.rsi(df['Close'], window=rsiwindow)
+
+      stoch = ta.momentum.StochasticOscillator(df['High'], df['Low'], df['Close'], window=rsiwindow, smooth_window=3)
+      df["STOCH_K"] = stoch.stoch()
+      df["STOCH_D"] = stoch.stoch_signal()
+      df["TREND"] = df.iloc[-smalong]["SMA_L"] - df["SMA_L"]
+
+      closeprice = df.iloc[-1]["Close"]
+      # Si j'ai un ordre en cours, je check chaque seconde si je dois vendre
+      # StopLoss long
+      if(buytype == 2 and closeprice < stoploss):
+        pricesold = df.iloc[-1]["Close"]
+        writeInFile(filename, "Stoploss long le : " + df.index[len(df) - 1].strftime("%m/%d/%Y, %H:%M:%S") +  " à : " + str(pricesold))
+        buytype = 0
+        percent = (1 - (pricebought / pricesold)) * levier
+        wallet = wallet + (wallet * percent)
+        writeInFile(filename, "Nouveau solde : " + str(wallet) + "\n")
+        canBuy = True
+    
+      # StopLoss short
+      elif(buytype == -2 and closeprice > stoploss):
+        pricesold = df.iloc[-1]["Close"]
+        writeInFile(filename, "Stoploss short le : " + df.index[len(df) - 1].strftime("%m/%d/%Y, %H:%M:%S") +  " à : " + str(pricesold))
+        buytype = 0      
+        percent = (1 - (pricesold / pricebought)) * levier
+        wallet = wallet + (wallet * percent)
+        writeInFile(filename, "Nouveau solde : " + str(wallet) + "\n")
+        canBuy = True
+
+    # TakeProfit long
+      elif(buytype == 2 and closeprice > takeprofit):
+        pricesold = df.iloc[-1]["Close"]
+        writeInFile(filename, "Takeprofit long le : " + df.index[len(df) - 1].strftime("%m/%d/%Y, %H:%M:%S") +  " à : " + str(pricesold))
+        buytype = 0
+        percent = (1 - (pricebought / pricesold)) * levier
+        wallet = wallet + (wallet * percent)
+        writeInFile(filename, "Nouveau solde : " + str(wallet) + "\n")
+        canBuy = True
+
+    # TakeProfit short
+      elif(buytype == -2 and closeprice < takeprofit):
+        pricesold = df.iloc[-1]["Close"]
+        writeInFile(filename, "Takeprofit short le : " + df.index[len(df) - 1].strftime("%m/%d/%Y, %H:%M:%S") +  " à : " + str(pricesold))
+        buytype = 0
+        percent = (1 - (pricesold / pricebought)) * levier
+        wallet = wallet + (wallet * percent)
+        writeInFile(filename, "Nouveau solde : " + str(wallet) + "\n")
+        canBuy = True
+
+    # Vente classique long
+      elif(buytype == 2 and sellLongCondition(df.iloc[-1], df.iloc[-2])):
+        pricesold = df.iloc[-1]["Close"]
+        writeInFile(filename, "Vente long le : " + df.index[len(df) - 1].strftime("%m/%d/%Y, %H:%M:%S") +  " à : " + str(pricesold))
+        buytype = 0
+        percent = (1 - (pricebought / pricesold)) * levier
+        wallet = wallet + (wallet * percent)
+        writeInFile(filename, "Nouveau solde : " + str(wallet) + "\n")
+        canBuy = True
+
+    # Vente classique short
+      elif(buytype == -2 and sellShortCondition(df.iloc[-1])):
+        pricesold = df.iloc[-1]["Close"]
+        writeInFile(filename, "Vente short le : " + df.index[len(df) - 1].strftime("%m/%d/%Y, %H:%M:%S") +  " à : " + str(pricesold))
+        buytype = 0
+        percent = (1 - (pricesold / pricebought)) * levier
+        wallet = wallet + (wallet * percent)
+        writeInFile(filename, "Nouveau solde : " + str(wallet) + "\n")
+        canBuy = True
+
+    savedTime = df.index[len(df) - 1]
+    threading.Timer(1.0, loop, [savedTime, canBuy, symbol, buytype, stoploss, takeprofit, wallet, pricebought]).start()
+  except exceptions.BinanceAPIException as e:
+    file.write("\nException survenue : \nCode : " + e.status_code + "\nMessage : " + e.message)
+    threading.Timer(1.0, loop, [savedTime, canBuy, symbol, buytype, stoploss, takeprofit, wallet, pricebought]).start()
+  except requests.exceptions.ConnectionError as e:
+    file.write("\nException survenue : " + e)
+    threading.Timer(1.0, loop, [savedTime, canBuy, symbol, buytype, stoploss, takeprofit, wallet, pricebought]).start()
+
+file = open(filename, "a")
+file.write("\nLancement du bot le : " + now.strftime("%m/%d/%Y, %H:%M:%S"))
+file.write("\nDonnées entrées pour ce bot : "+ "\n    Stoploss : "+ str(sltaux)+ "\n    Takeprofit : "+ str(tptaux)+ "\n    Levier : "+ str(levier))
+file.write("\nPaire utilisée : " + symbol)
+file.write("\nSolde de départ : " + str(wallet))
+file.close()
+
+loop(now, True, symbol, buytype, stoploss, takeprofit, wallet, pricebought)

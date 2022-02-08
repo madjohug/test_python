@@ -1,6 +1,7 @@
+# -*- coding: utf-8 -*-
+
 import threading
 import time
-from typing import final
 import requests 
 from datetime import datetime, timedelta
 import pandas as pd

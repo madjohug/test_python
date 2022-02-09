@@ -68,6 +68,9 @@ filename = sys.argv[5]
 client = Client("Tr80L4Fnm2g4m8gnI3YlrCGR0XhlW9shMmVw01IYrE6Kjrd5WRdisaFIGguwp1jN",
                 "D5GHjiCbJx1eR69hHRGY6Gzc9HGTZF2LpzMuPxzDFvqd9PdWGWsv4oBLGUggAHDH")
 
+client.futures_change_leverage(symbol=symbol, leverage=int(levier))
+client.futures_change_position_mode(dualSidePosition=True)
+
 async def loop(savedTime, canBuy, symbol, buytype, stoploss, takeprofit, wallet, pricebought):
   
   t = float(round(time.time()))-0.75*3600 # - 45 minutes
@@ -109,13 +112,23 @@ async def loop(savedTime, canBuy, symbol, buytype, stoploss, takeprofit, wallet,
         df["TREND"] = df.iloc[-smalong]["SMA_L"] - df["SMA_L"]
 
         if (buyLongCondition(df.iloc[-1], df.iloc[-2])):
-          client.futures_create_order(
+          buyPrice = await client.get
+          await client.futures_create_order(
             symbol=symbol,
             side=enums.SIDE_BUY,
             positionSide="LONG",
             type=enums.ORDER_TYPE_LIMIT,
             timeInForce=enums.TIME_IN_FORCE_IOC,
             price="", # Get Last,
+            quantity=0.001,
+          )
+          await client.futures_create_order(
+            symbol=symbol,
+            side=enums.SIDE_SELL,
+            positionSide="LONG",
+            type=enums.FUTURE_ORDER_TYPE_STOP,
+            timeInForce=enums.TIME_IN_FORCE_GTC,
+            stopPrice=
             quantity=0.001,
           )
           buyprice = df.iloc[-1]['Close']
@@ -147,50 +160,8 @@ async def loop(savedTime, canBuy, symbol, buytype, stoploss, takeprofit, wallet,
       df["STOCH_D"] = stoch.stoch_signal()
       df["TREND"] = df.iloc[-smalong]["SMA_L"] - df["SMA_L"]
 
-      closeprice = df.iloc[-1]["Close"]
-      # Si j'ai un ordre en cours, je check chaque seconde si je dois vendre
-      # StopLoss long
-      if(buytype == 2 and closeprice < stoploss):
-        pricesold = df.iloc[-1]["Close"]
-        writeInFile(filename, "Stoploss long le : " + df.index[len(df) - 1].strftime("%m/%d/%Y, %H:%M:%S") +  " à : " + str(pricesold))
-        buytype = 0
-        percent = (1 - (pricebought / pricesold)) * levier
-        wallet = wallet + (wallet * percent)
-        writeInFile(filename, "Nouveau solde : " + str(wallet) + "\n")
-        canBuy = True
-    
-      # StopLoss short
-      elif(buytype == -2 and closeprice > stoploss):
-        pricesold = df.iloc[-1]["Close"]
-        writeInFile(filename, "Stoploss short le : " + df.index[len(df) - 1].strftime("%m/%d/%Y, %H:%M:%S") +  " à : " + str(pricesold))
-        buytype = 0      
-        percent = (1 - (pricesold / pricebought)) * levier
-        wallet = wallet + (wallet * percent)
-        writeInFile(filename, "Nouveau solde : " + str(wallet) + "\n")
-        canBuy = True
-
-    # TakeProfit long
-      elif(buytype == 2 and closeprice > takeprofit):
-        pricesold = df.iloc[-1]["Close"]
-        writeInFile(filename, "Takeprofit long le : " + df.index[len(df) - 1].strftime("%m/%d/%Y, %H:%M:%S") +  " à : " + str(pricesold))
-        buytype = 0
-        percent = (1 - (pricebought / pricesold)) * levier
-        wallet = wallet + (wallet * percent)
-        writeInFile(filename, "Nouveau solde : " + str(wallet) + "\n")
-        canBuy = True
-
-    # TakeProfit short
-      elif(buytype == -2 and closeprice < takeprofit):
-        pricesold = df.iloc[-1]["Close"]
-        writeInFile(filename, "Takeprofit short le : " + df.index[len(df) - 1].strftime("%m/%d/%Y, %H:%M:%S") +  " à : " + str(pricesold))
-        buytype = 0
-        percent = (1 - (pricesold / pricebought)) * levier
-        wallet = wallet + (wallet * percent)
-        writeInFile(filename, "Nouveau solde : " + str(wallet) + "\n")
-        canBuy = True
-
-    # Vente classique long
-      elif(buytype == 2 and sellLongCondition(df.iloc[-1], df.iloc[-2])):
+      # Vente classique long
+      if(buytype == 2 and sellLongCondition(df.iloc[-1], df.iloc[-2])):
         pricesold = df.iloc[-1]["Close"]
         writeInFile(filename, "Vente long le : " + df.index[len(df) - 1].strftime("%m/%d/%Y, %H:%M:%S") +  " à : " + str(pricesold))
         buytype = 0
@@ -199,7 +170,7 @@ async def loop(savedTime, canBuy, symbol, buytype, stoploss, takeprofit, wallet,
         writeInFile(filename, "Nouveau solde : " + str(wallet) + "\n")
         canBuy = True
 
-    # Vente classique short
+      # Vente classique short
       elif(buytype == -2 and sellShortCondition(df.iloc[-1])):
         pricesold = df.iloc[-1]["Close"]
         writeInFile(filename, "Vente short le : " + df.index[len(df) - 1].strftime("%m/%d/%Y, %H:%M:%S") +  " à : " + str(pricesold))

@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 import ta
 import sys
-from binance import exceptions
+from binance import exceptions, Client, enums
 
 def buyLongCondition(row, prev):
   if (row['STOCH_K'] > row['STOCH_D'] and prev['STOCH_K'] < prev['STOCH_D'] and row['STOCH_K'] < 20
@@ -45,6 +45,12 @@ def writeInFile(filename, message):
   file.write("\n" + message)
   file.close()
 
+def getBalance():
+  e = client.futures_account_balance()
+  df = pd.DataFrame(e, columns=["alias", "asset", "balance", "withdrawAvailable", "updatetime"])
+  df = df[df["asset"] == "USDT"]
+  return df.iloc[0].balance
+
 now = datetime.fromtimestamp(time.time()).replace(second=0, microsecond=0) + timedelta(hours=-1)
 
 buytype = 0
@@ -59,13 +65,16 @@ sltaux = float(sys.argv[3])
 levier = float(sys.argv[4])
 filename = sys.argv[5]
 
-def loop(savedTime, canBuy, symbol, buytype, stoploss, takeprofit, wallet, pricebought):
+client = Client("Tr80L4Fnm2g4m8gnI3YlrCGR0XhlW9shMmVw01IYrE6Kjrd5WRdisaFIGguwp1jN",
+                "D5GHjiCbJx1eR69hHRGY6Gzc9HGTZF2LpzMuPxzDFvqd9PdWGWsv4oBLGUggAHDH")
+
+async def loop(savedTime, canBuy, symbol, buytype, stoploss, takeprofit, wallet, pricebought):
   
   t = float(round(time.time()))-0.75*3600 # - 45 minutes
 
   url = ("https://fapi.binance.com/fapi/v1/klines?symbol=" + symbol + "&interval=1m&startTime=" + str(t))
   try: 
-    klines = requests.get(url).json()
+    klines = await requests.get(url).json()
     df = pd.DataFrame(klines, columns=['Opentime', 'Open', 'High', 'Low', 'Close', 'Volume', 'Closetime', 'qas', 'not', 'tb', 'tq', 'i'])
     df['High'] = pd.to_numeric(df['High'])
     df['Low'] = pd.to_numeric(df['Low'])
@@ -75,6 +84,7 @@ def loop(savedTime, canBuy, symbol, buytype, stoploss, takeprofit, wallet, price
     df = df.set_index(df['Opentime'])
     df.index = pd.to_datetime(df.index, unit="ms")
 
+    
     smawindow = 10
     rsiwindow = 14
     smalong = 20
@@ -84,6 +94,9 @@ def loop(savedTime, canBuy, symbol, buytype, stoploss, takeprofit, wallet, price
 
     # Sinon, je check si je peux acheter, si je suis à une nouvelle minute
     if (canBuy == True):
+        balance = getBalance()
+        buyAmount = float(balance) * 0.1
+
         df["SMA"] = ta.trend.sma_indicator(df['Close'], window=smawindow)
         df["SMA_L"] = ta.trend.sma_indicator(df['Close'], window=smalong)
         df["SMA_VL"] = ta.trend.sma_indicator(df['Close'], window=smavlong)
@@ -96,6 +109,15 @@ def loop(savedTime, canBuy, symbol, buytype, stoploss, takeprofit, wallet, price
         df["TREND"] = df.iloc[-smalong]["SMA_L"] - df["SMA_L"]
 
         if (buyLongCondition(df.iloc[-1], df.iloc[-2])):
+          client.futures_create_order(
+            symbol=symbol,
+            side=enums.SIDE_BUY,
+            positionSide="LONG",
+            type=enums.ORDER_TYPE_LIMIT,
+            timeInForce=enums.TIME_IN_FORCE_IOC,
+            price="", # Get Last,
+            quantity=0.001,
+          )
           buyprice = df.iloc[-1]['Close']
           pricebought = buyprice
           stoploss = buyprice - sltaux * buyprice

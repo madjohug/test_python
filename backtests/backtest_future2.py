@@ -8,9 +8,9 @@ import ta
 client = Client("Tr80L4Fnm2g4m8gnI3YlrCGR0XhlW9shMmVw01IYrE6Kjrd5WRdisaFIGguwp1jN",
                 "D5GHjiCbJx1eR69hHRGY6Gzc9HGTZF2LpzMuPxzDFvqd9PdWGWsv4oBLGUggAHDH")
 
-startdate = "01st February 2022"
+startdate = "1st November 2021"
 
-klines = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_1MINUTE, start_str=startdate)
+klines = client.get_historical_klines("ETHUSDT", Client.KLINE_INTERVAL_1MINUTE, start_str=startdate)
 datas = pd.DataFrame(klines, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Closetime', 'QAV', 'NofTrades', 'tbase', 'tquote', 'ignore'])
 datas['High'] = pd.to_numeric(datas['High'])
 datas['Low'] = pd.to_numeric(datas['Low'])
@@ -62,9 +62,9 @@ startcoin = ((usdt * taxe) / dcp.iloc[0]['Close'])
 coin = 0
 
 #ETH
-sltaux = 0.006
-tptaux = 0.002
-levier = 5
+sltaux = 0.01
+tptaux = 0.01
+levier = 3
 
 # # #BTC
 # sltaux = 0.01
@@ -82,7 +82,7 @@ bontrade = 0
 mauvaistrade = 0
 
 result = None
-result = pd.DataFrame(columns=['date', 'type', 'price', 'amount', 'coins', 'frais', 'usdt', 'total'])
+result = pd.DataFrame(columns=['date', 'type', 'price', 'amount', 'coins', 'frais', 'usdt', 'total', 'ope'])
 
 plus_haut = usdt
 plus_bas = usdt
@@ -142,7 +142,7 @@ for x, row in dcp.iterrows():
 
     lastbuytime = x
 
-    myrow = {'date': x, 'type': "BUY LONG", 'price': buyprice, 'amount': prevusdt, 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt, 'total': oldamount}
+    myrow = {'date': x, 'type': "BUY LONG", 'price': buyprice, 'amount': prevusdt, 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt, 'total': oldamount, 'ope': 'buy'}
     result = result.append(myrow, ignore_index=True)
 
   # Buy short
@@ -164,7 +164,7 @@ for x, row in dcp.iterrows():
 
     lastbuytime = x
 
-    myrow = {'date': x, 'type': "BUY SHORT", 'price': buyprice, 'amount': prevusdt, 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt, 'total': oldamount}
+    myrow = {'date': x, 'type': "BUY SHORT", 'price': buyprice, 'amount': prevusdt, 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt, 'total': oldamount, 'ope': 'buy'}
     result = result.append(myrow, ignore_index=True)
 
   #StopLoss long
@@ -187,7 +187,7 @@ for x, row in dcp.iterrows():
 
     mauvaistrade += 1
 
-    myrow = {'date': x, 'type': "STOPLOSS LONG", 'price': sellprice, 'amount': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt, 'total': usdt}
+    myrow = {'date': x, 'type': "STOPLOSS LONG", 'price': sellprice, 'amount': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt, 'total': usdt, 'ope': 'sell'}
     result = result.append(myrow, ignore_index=True)
   
   #StopLoss short
@@ -210,7 +210,7 @@ for x, row in dcp.iterrows():
 
     mauvaistrade += 1
 
-    myrow = {'date': x, 'type': "STOPLOSS SHORT", 'price': sellprice, 'amount': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt, 'total': usdt}
+    myrow = {'date': x, 'type': "STOPLOSS SHORT", 'price': sellprice, 'amount': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt, 'total': usdt, 'ope': 'sell'}
     result = result.append(myrow, ignore_index=True)
 
   # TakeProfit long
@@ -230,7 +230,7 @@ for x, row in dcp.iterrows():
     # set le max
     if (usdt > plus_haut): plus_haut = usdt
 
-    myrow = {'date': x, 'type': "TAKEPROFIT LONG", 'price': sellprice, 'amount': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt, 'total': usdt}
+    myrow = {'date': x, 'type': "TAKEPROFIT LONG", 'price': sellprice, 'amount': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt, 'total': usdt, 'ope': 'sell'}
     result = result.append(myrow, ignore_index=True)
 
   # TakeProfit short
@@ -250,7 +250,7 @@ for x, row in dcp.iterrows():
     # set le max
     if (usdt > plus_haut): plus_haut = usdt
 
-    myrow = {'date': x, 'type': "TAKEPROFIT SHORT", 'price': sellprice, 'amount': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt, 'total': usdt}
+    myrow = {'date': x, 'type': "TAKEPROFIT SHORT", 'price': sellprice, 'amount': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt, 'total': usdt, 'ope': 'sell'}
     result = result.append(myrow, ignore_index=True)
 
   # Vente classique long
@@ -277,7 +277,7 @@ for x, row in dcp.iterrows():
     # set le min
     if (usdt < plus_bas): plus_bas = usdt
 
-    myrow = {'date': x, 'type': "SELL LONG", 'price': sellprice, 'amount': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt, 'total': usdt}
+    myrow = {'date': x, 'type': "SELL LONG", 'price': sellprice, 'amount': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt, 'total': usdt, 'ope': 'sell'}
     result = result.append(myrow, ignore_index=True)
 
   # Vente classique short
@@ -300,7 +300,7 @@ for x, row in dcp.iterrows():
 
     if (usdt > plus_haut): plus_haut = usdt
 
-    myrow = {'date': x, 'type': "SELL SHORT", 'price': sellprice, 'amount': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt, 'total': usdt}
+    myrow = {'date': x, 'type': "SELL SHORT", 'price': sellprice, 'amount': "", 'coins': coin, 'frais': float("{:.5f}".format(frais)), 'usdt': usdt, 'total': usdt, 'ope': 'sell'}
     result = result.append(myrow, ignore_index=True)
     
 
@@ -332,7 +332,8 @@ print("\n")
 print(result['type'].value_counts())
 print("\n")
 
-plot = result.plot(x="date", y="total", kind="bar", figsize=(20,10))
+result = result[result['ope'] == 'sell']
+plot = result.plot(x="date", y="total", kind="line", figsize=(20,10))
 print(plot)
 
 print(result)

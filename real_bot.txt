@@ -1,0 +1,36 @@
+
+Lancement du bot le : 02/09/2022, 15:50:00
+Données entrées pour ce bot : 
+    Stoploss : 0.006
+    Takeprofit : 0.002
+    Levier : 5.0
+Paire utilisée : BTCUSDT
+Solde de départ : 100
+Lancement du bot le : 02/09/2022, 15:52:00
+Données entrées pour ce bot : 
+    Stoploss : 0.006
+    Takeprofit : 0.002
+    Levier : 5.0
+Paire utilisée : BTCUSDT
+Solde de départ : 100
+Lancement du bot le : 02/09/2022, 15:52:00
+Données entrées pour ce bot : 
+    Stoploss : 0.006
+    Takeprofit : 0.002
+    Levier : 5.0
+Paire utilisée : BTCUSDT
+Solde de départ : 100
+Lancement du bot le : 02/09/2022, 15:53:00
+Données entrées pour ce bot : 
+    Stoploss : 0.006
+    Takeprofit : 0.002
+    Levier : 5.0
+Paire utilisée : BTCUSDT
+Solde de départ : 100
+Lancement du bot le : 02/09/2022, 16:04:00
+Données entrées pour ce bot : 
+    Stoploss : 0.006
+    Takeprofit : 0.002
+    Levier : 5.0
+Paire utilisée : BTCUSDT
+Solde de départ : 100

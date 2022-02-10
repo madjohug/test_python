@@ -111,8 +111,8 @@ async def loop(savedTime, canBuy, symbol, buytype, stoploss, takeprofit, wallet,
         df["TREND"] = df.iloc[-smalong]["SMA_L"] - df["SMA_L"]
 
         if (buyLongCondition(df.iloc[-1], df.iloc[-2])):
-          buyPrice = await client.get_symbol_ticker(symbol=symbol)['price']
-          await client.futures_create_order(
+          buyPrice = float(client.get_symbol_ticker(symbol=symbol)['price'])
+          client.futures_create_order(
             symbol=symbol,
             side=enums.SIDE_BUY,
             positionSide="LONG",
@@ -121,7 +121,7 @@ async def loop(savedTime, canBuy, symbol, buytype, stoploss, takeprofit, wallet,
             price=buyPrice,
             quantity=0.001
           )
-          await client.futures_create_order(
+          client.futures_create_order(
             symbol=symbol,
             side=enums.SIDE_SELL,
             positionSide="LONG",
@@ -130,7 +130,7 @@ async def loop(savedTime, canBuy, symbol, buytype, stoploss, takeprofit, wallet,
             stopPrice=(buyPrice - sltaux * buyPrice),
             quantity=0.001
           )
-          await client.futures_create_order(
+          client.futures_create_order(
             symbol=symbol,
             side=enums.SIDE_SELL,
             positionSide="LONG",
@@ -143,8 +143,8 @@ async def loop(savedTime, canBuy, symbol, buytype, stoploss, takeprofit, wallet,
           canBuy = False
 
         elif(buyShortCondition(df.iloc[-1], df.iloc[-2])):
-          buyPrice = await client.get_symbol_ticker(symbol=symbol)['price']
-          await client.futures_create_order(
+          buyPrice = float(client.get_symbol_ticker(symbol=symbol)['price'])
+          client.futures_create_order(
             symbol=symbol,
             side=enums.SIDE_BUY,
             positionSide="SHORT",
@@ -153,7 +153,7 @@ async def loop(savedTime, canBuy, symbol, buytype, stoploss, takeprofit, wallet,
             price=buyPrice,
             quantity=0.001
           )
-          await client.futures_create_order(
+          client.futures_create_order(
             symbol=symbol,
             side=enums.SIDE_SELL,
             positionSide="SHORT",
@@ -162,7 +162,7 @@ async def loop(savedTime, canBuy, symbol, buytype, stoploss, takeprofit, wallet,
             stopPrice=(buyPrice - sltaux * buyPrice),
             quantity=0.001
           )
-          await client.futures_create_order(
+          client.futures_create_order(
             symbol=symbol,
             side=enums.SIDE_SELL,
             positionSide="SHORT",
@@ -188,8 +188,8 @@ async def loop(savedTime, canBuy, symbol, buytype, stoploss, takeprofit, wallet,
 
       # Vente classique long
       if(buytype == 2 and sellLongCondition(df.iloc[-1], df.iloc[-2])):
-        sellPrice = await client.get_symbol_ticker(symbol=symbol)['price']
-        await client.futures_create_order(
+        sellPrice = float(client.get_symbol_ticker(symbol=symbol)['price'])
+        client.futures_create_order(
           symbol=symbol,
           side=enums.SIDE_SELL,
           positionSide="LONG",
@@ -203,8 +203,8 @@ async def loop(savedTime, canBuy, symbol, buytype, stoploss, takeprofit, wallet,
 
       # Vente classique short
       elif(buytype == -2 and sellShortCondition(df.iloc[-1])):
-        sellPrice = await client.get_symbol_ticker(symbol=symbol)['price']
-        await client.futures_create_order(
+        sellPrice = float(client.get_symbol_ticker(symbol=symbol)['price'])
+        client.futures_create_order(
           symbol=symbol,
           side=enums.SIDE_SELL,
           positionSide="SHORT",
@@ -219,7 +219,7 @@ async def loop(savedTime, canBuy, symbol, buytype, stoploss, takeprofit, wallet,
     savedTime = df.index[len(df) - 1]
     threading.Timer(1.0, wait, [savedTime, canBuy, symbol, buytype, stoploss, takeprofit, wallet, pricebought]).start()
   except exceptions.BinanceAPIException as e:
-    file.write("\nException survenue : \nCode : " + e.status_code + "\nMessage : " + e.message)
+    file.write("\nException survenue BinanceAPI")
     threading.Timer(1.0, wait, [savedTime, canBuy, symbol, buytype, stoploss, takeprofit, wallet, pricebought]).start()
   except requests.exceptions.ConnectionError as e:
     file.write("\nException survenue")
@@ -230,6 +230,5 @@ file.write("\nLancement du bot le : " + now.strftime("%m/%d/%Y, %H:%M:%S"))
 file.write("\nDonnées entrées pour ce bot : "+ "\n    Stoploss : "+ str(sltaux)+ "\n    Takeprofit : "+ str(tptaux)+ "\n    Levier : "+ str(levier))
 file.write("\nPaire utilisée : " + symbol)
 file.write("\nSolde de départ : " + str(wallet))
-file.close()
 
 asyncio.run(wait(now, True, symbol, buytype, stoploss, takeprofit, wallet, pricebought))

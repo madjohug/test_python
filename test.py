@@ -8,16 +8,16 @@ client = Client("Tr80L4Fnm2g4m8gnI3YlrCGR0XhlW9shMmVw01IYrE6Kjrd5WRdisaFIGguwp1j
 symbol = "ETHUSDT"
 #%%
 
-def test():
+async def test():
   price = float(client.get_symbol_ticker(symbol=symbol)['price'])
-  client.futures_create_order(
+  await client.futures_create_order(
     symbol=symbol,
-    side=enums.SIDE_BUY,
+    side='BUY',
     positionSide="SHORT",
-    type=enums.ORDER_TYPE_LIMIT,
-    timeInForce=enums.TIME_IN_FORCE_GTC,
+    type='LIMIT',
+    timeInForce='GTC',
     price=price,
-    quantity=0.002
+    quantity=0.002,
   )
   # client.futures_create_order(
   #   symbol=symbol,
@@ -38,7 +38,7 @@ def test():
   #   quantity=0.002,
   # )
 
-test()
+asyncio.run(test())
 
 #%%
 # client.futures_change_leverage(symbol=symbol, leverage=1)

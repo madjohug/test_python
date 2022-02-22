@@ -51,34 +51,22 @@ async def test():
   # r = requests.post("https://fapi.binance.com/fapi/v1/order", data=data, headers=headers)
   # print(r.json())
   try:
-    # buy = client.futures_create_order(
-    #   symbol=symbol,
-    #   side="SELL",
-    #   positionSide="SHORT",
-    #   type="MARKET",
-    #   quantity=0.002,
-    # )
 
     # print(buy)
 
     # await asyncio.sleep(0.5)
 
-    orders = client.futures_position_information(symbol=symbol)
-    do = pd.DataFrame(orders)
-    do["positionAmt"] = pd.to_numeric(do["positionAmt"])
-    print(do)
+    buyPrice = float(client.get_symbol_ticker(symbol=symbol)['price'])
+    balance = float(getBalance())
+    print(round((balance * 0.5) / buyPrice, 3))
 
-    sellquantity = do[do["positionSide"] == "SHORT"]["positionAmt"]
-    print(sellquantity)
-    sell = client.futures_create_order(
+    client.futures_create_order(
       symbol=symbol,
-      side="BUY",
+      side="SELL",
       positionSide="SHORT",
       type="MARKET",
-      quantity=abs(float(sellquantity)),
+      quantity=round((balance * 0.5) / buyPrice, 3)
     )
-
-    print(sell)
 
     # await asyncio.sleep(1)
     # stop = client.futures_create_order(
@@ -106,8 +94,11 @@ async def test():
 
   except exceptions.BinanceAPIException as e:
     client.futures_cancel_all_open_orders(symbol=symbol)
+    print(e)
   except requests.exceptions.ConnectionError as e:
     client.futures_cancel_all_open_orders(symbol=symbol)
+    print(e)
+
 
 
 asyncio.run(test())

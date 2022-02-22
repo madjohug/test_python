@@ -30,8 +30,10 @@ def buyLongCondition(row, prev):
     and row["RSI"] < 30
     and row["TREND"] > 0
     and row["SMA_L"] < row["SMA_VL"]):
+    print("buyLongCondition : True")
     return True
   else:
+    print("buyLongCondition : False")
     return False
 
 def sellLongCondition(row, prev):
@@ -46,8 +48,10 @@ def buyShortCondition(row, prev):
     and row["RSI"] > 70
     and row["TREND"] < 0
     and row["SMA_L"] > row["SMA_VL"]):
+    print("buyShortCondition : True")
     return True
   else:
+    print("buyShortCondition : False")
     return False
 
 def sellShortCondition(row):
@@ -109,6 +113,7 @@ async def loop(symbol):
     
     #Si je n'ai aucune position d'ouverte
     if (do["positionAmt"].sum() == 0.0):
+        print("En achat")
         df["SMA"] = ta.trend.sma_indicator(df['Close'], window=smawindow)
         df["SMA_L"] = ta.trend.sma_indicator(df['Close'], window=smalong)
         df["SMA_VL"] = ta.trend.sma_indicator(df['Close'], window=smavlong)
@@ -121,6 +126,7 @@ async def loop(symbol):
         df["TREND"] = df.iloc[-smalong]["SMA_L"] - df["SMA_L"]
 
         if (buyLongCondition(df.iloc[-1], df.iloc[-2])):
+          print("Je peux acheter long")
           buyPrice = float(client.get_symbol_ticker(symbol=symbol)['price'])
           balance = float(getBalance())
 
@@ -129,9 +135,9 @@ async def loop(symbol):
             side="BUY",
             positionSide="LONG",
             type="MARKET",
-            quantity=(balance * 0.5) / buyPrice
+            quantity=round((balance * 0.5) / buyPrice, 3)
           )
-          await asyncio.sleep(1)
+          await asyncio.sleep(0.1)
           client.futures_create_order(
             symbol=symbol,
             side="SELL",
@@ -141,7 +147,7 @@ async def loop(symbol):
             stopPrice=round((buyPrice - sltaux * buyPrice), 2),
             closePosition="true"
           )
-          await asyncio.sleep(1)
+          await asyncio.sleep(0.1)
           client.futures_create_order(
             symbol=symbol,
             side="SELL",
@@ -152,7 +158,10 @@ async def loop(symbol):
             closePosition="true"
           )
 
+          file.write("\nAchat long")
+
         elif(buyShortCondition(df.iloc[-1], df.iloc[-2])):
+          print("Je peux acheter short")
           buyPrice = float(client.get_symbol_ticker(symbol=symbol)['price'])
           balance = float(getBalance())
 
@@ -161,9 +170,9 @@ async def loop(symbol):
             side="SELL",
             positionSide="SHORT",
             type="MARKET",
-            quantity=(balance * 0.5) / buyPrice
+            quantity=round((balance * 0.5) / buyPrice, 3)
           )
-          await asyncio.sleep(1)
+          await asyncio.sleep(0.1)
           client.futures_create_order(
             symbol=symbol,
             side="BUY",
@@ -173,7 +182,7 @@ async def loop(symbol):
             stopPrice=round((buyPrice + sltaux * buyPrice), 2),
             closePosition="true"
           )
-          await asyncio.sleep(1)
+          await asyncio.sleep(0.1)
           client.futures_create_order(
             symbol=symbol,
             side="BUY",
@@ -184,7 +193,9 @@ async def loop(symbol):
             closePosition="true"
           )
 
+          file.write("\nAchat short")
     else:
+      print("En vente")
       df["SMA"] = ta.trend.sma_indicator(df['Close'], window=smawindow)
       df["SMA_L"] = ta.trend.sma_indicator(df['Close'], window=smalong)
       df["SMA_VL"] = ta.trend.sma_indicator(df['Close'], window=smavlong)
@@ -205,9 +216,9 @@ async def loop(symbol):
           side="SELL",
           positionSide="LONG",
           type="MARKET",
-          quantity=abs(float(sellquantity)),
+          quantity=round(abs(float(sellquantity)), 3),
         )
-
+        file.write("\nVente long")
       # Vente classique short
       elif((do[do["positionSide"] == "SHORT"]["positionAmt"].sum() != 0.0) and sellShortCondition(df.iloc[-1])):
         sellquantity = do[do["positionSide"] == "SHORT"]["positionAmt"]
@@ -216,19 +227,17 @@ async def loop(symbol):
           side="BUY",
           positionSide="SHORT",
           type="MARKET",
-          quantity=abs(float(sellquantity)),
+          quantity=round(abs(float(sellquantity)), 3),
         )  
+        file.write("\nVente short")
   except exceptions.BinanceAPIException as e:
     file.write("\nException survenue BinanceAPI")
+    file.write(e)
     client.futures_cancel_all_open_orders(symbol=symbol)
-    asyncio.run(loop(symbol))
   except requests.exceptions.ConnectionError as e:
     file.write("\nException survenue")
+    file.write(e)
     client.futures_cancel_all_open_orders(symbol=symbol)
-    asyncio.run(loop(symbol))
-  except RecursionError:
-    await asyncio.sleep(1)
-    asyncio.run(loop(symbol))
 
 file = open(filename, "a")
 file.write("\nLancement du bot le : " + now.strftime("%m/%d/%Y, %H:%M:%S"))

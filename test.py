@@ -1,56 +1,115 @@
 #%%
-from datetime import datetime
-from tkinter import BOTH
-from binance import  Client, enums
-import asyncio
+from inspect import getblock
+from binance import  Client, enums, exceptions
 import requests 
 from time import time
+import pandas as pd
+import hmac
+import hashlib
+import codecs
+import asyncio
 
-client = Client("Tr80L4Fnm2g4m8gnI3YlrCGR0XhlW9shMmVw01IYrE6Kjrd5WRdisaFIGguwp1jN",
-                "D5GHjiCbJx1eR69hHRGY6Gzc9HGTZF2LpzMuPxzDFvqd9PdWGWsv4oBLGUggAHDH")
+apikey = "Tr80L4Fnm2g4m8gnI3YlrCGR0XhlW9shMmVw01IYrE6Kjrd5WRdisaFIGguwp1jN"
+secret = "D5GHjiCbJx1eR69hHRGY6Gzc9HGTZF2LpzMuPxzDFvqd9PdWGWsv4oBLGUggAHDH"
+
+client = Client(apikey, secret)
+
 symbol = "ETHUSDT"
 
 headers = {
-    'X-MBX-APIKEY': "Tr80L4Fnm2g4m8gnI3YlrCGR0XhlW9shMmVw01IYrE6Kjrd5WRdisaFIGguwp1jN"
+    'X-MBX-APIKEY': apikey,
+    "Content-Type": "application/x-www-form-urlencoded"
 }
 #%%
 
-def test():
+def getBalance():
+  e = client.futures_account_balance()
+  df = pd.DataFrame(e, columns=["alias", "asset", "balance", "withdrawAvailable", "updatetime"])
+  df = df[df["asset"] == "USDT"]
+  return df.iloc[0].balance
+
+async def test():
   price = float(client.get_symbol_ticker(symbol=symbol)['price'])
-  r = requests.post("https://fapi.binance.com/fapi/v1/order", params={
-    "symbol": symbol,
-    "side": "BUY",
-    "positionSide": "SHORT",
-    "type": enums.FUTURE_ORDER_TYPE_STOP,
-    "timeInForce": enums.TIME_IN_FORCE_GTC,
-    "stopPrice": (price - 0.006 * price),
-    "quantity": 0.001,
-    "reduceOnly": "true",
-    "workingType": "MARK_PRICE",
-    "timestamp": datetime.now().timestamp()
-  }, headers=headers)
-  print(r.json())
-  # client.futures_create_order(
-  #   symbol=symbol,
-  #   side=enums.SIDE_SELL,
-  #   positionSide="SHORT",
-  #   type=enums.FUTURE_ORDER_TYPE_STOP_MARKET,
-  #   timeInForce=enums.TIME_IN_FORCE_GTC,
-  #   stopPrice=round((price - 0.006 * price), 2),
-  #   quantity=0.002,
-  # )
-  # client.futures_create_order(
-  #   symbol=symbol,
-  #   side=enums.SIDE_SELL,
-  #   positionSide="SHORT",
-  #   type=enums.FUTURE_ORDER_TYPE_TAKE_PROFIT_MARKET,
-  #   timeInForce=enums.TIME_IN_FORCE_GTC,
-  #   stopPrice=round((price + 0.002 * price), 2),
-  #   quantity=0.002,
-  # )
+  print("price : ", price)
+  # totalParams = "symbol="+symbol+"&side=SELL&timestamp="+str(int(time()*1000))+"&positionSide=SHORT&type=STOP_LOSS&timeInForce=GTC&stopPrice="+str(round(float(price)-0.006*float(price), 2))+"&quantity="+str(0.001)+"&workingType=MARK_PRICE"
+  # signature = hmac.new(codecs.encode(secret), codecs.encode(totalParams),hashlib.sha256).hexdigest()
+  # print(signature)
 
-test()
+  # data = {
+  #   "symbol": symbol,
+  #   "side": "SELL",
+  #   "timestamp": int(time()*1000),
+  #   "positionSide": "SHORT",
+  #   "type": "STOP_LOSS",
+  #   "timeInForce": "GTC",
+  #   "stopPrice": round(float(price) - 0.006 * float(price), 2),
+  #   "quantity": 0.001,
+  #   "workingType": "MARK_PRICE",
+  #   "signature": signature
+  # }
 
-#%%
-# client.futures_change_leverage(symbol=symbol, leverage=1)
+  # r = requests.post("https://fapi.binance.com/fapi/v1/order", data=data, headers=headers)
+  # print(r.json())
+  try:
+    # buy = client.futures_create_order(
+    #   symbol=symbol,
+    #   side="SELL",
+    #   positionSide="SHORT",
+    #   type="MARKET",
+    #   quantity=0.002,
+    # )
+
+    # print(buy)
+
+    # await asyncio.sleep(0.5)
+
+    orders = client.futures_position_information(symbol=symbol)
+    do = pd.DataFrame(orders)
+    do["positionAmt"] = pd.to_numeric(do["positionAmt"])
+    print(do)
+
+    sellquantity = do[do["positionSide"] == "SHORT"]["positionAmt"]
+    print(sellquantity)
+    sell = client.futures_create_order(
+      symbol=symbol,
+      side="BUY",
+      positionSide="SHORT",
+      type="MARKET",
+      quantity=abs(float(sellquantity)),
+    )
+
+    print(sell)
+
+    # await asyncio.sleep(1)
+    # stop = client.futures_create_order(
+    #   newClientOrderId=symbol,
+    #   symbol=symbol,
+    #   side="BUY",
+    #   positionSide="SHORT",
+    #   type="STOP_MARKET",
+    #   timeInForce="GTC",
+    #   stopPrice=round((price + 0.006 * price), 2),
+    #   closePosition="true"
+    # )
+
+    # await asyncio.sleep(1)
+    # profit = client.futures_create_order(
+    #   symbol=symbol,
+    #   side="BUY",
+    #   positionSide="SHORT",
+    #   type="TAKE_PROFIT_MARKET",
+    #   timeInForce="GTC",
+    #   stopPrice=round((price - 0.002 * price), 2),
+    #   quantity=0.002,
+    #   closePosition="true"
+    # )
+
+  except exceptions.BinanceAPIException as e:
+    client.futures_cancel_all_open_orders(symbol=symbol)
+  except requests.exceptions.ConnectionError as e:
+    client.futures_cancel_all_open_orders(symbol=symbol)
+
+
+asyncio.run(test())
+
 # %%

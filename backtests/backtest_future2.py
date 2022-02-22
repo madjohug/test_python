@@ -8,22 +8,34 @@ import ta
 client = Client("Tr80L4Fnm2g4m8gnI3YlrCGR0XhlW9shMmVw01IYrE6Kjrd5WRdisaFIGguwp1jN",
                 "D5GHjiCbJx1eR69hHRGY6Gzc9HGTZF2LpzMuPxzDFvqd9PdWGWsv4oBLGUggAHDH")
 
-startdate = "11th January 2022"
+startdate = "01st December 2021"
 
-klines = client.get_historical_klines("BNBUSDT", Client.KLINE_INTERVAL_1MINUTE, start_str=startdate)
+klines = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_1MINUTE, start_str=startdate)
 datas = pd.DataFrame(klines, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Closetime', 'QAV', 'NofTrades', 'tbase', 'tquote', 'ignore'])
 datas['High'] = pd.to_numeric(datas['High'])
 datas['Low'] = pd.to_numeric(datas['Low'])
 datas['Close'] = pd.to_numeric(datas['Close'])
 datas['Open'] = pd.to_numeric(datas['Open'])
-
 datas = datas.set_index(datas['timestamp'])
 datas.index = pd.to_datetime(datas.index, unit="ms")
-
 datas = datas.drop(columns=['Volume', 'QAV', 'NofTrades', 'tbase', 'tquote', 'ignore', 'Closetime'])
 
 #%%
 dcp = datas.copy()
+
+# def check_haussier(df):
+#   ret = True
+#   for count, row in df.iterrows():
+#     if (row["EMA_500"] >= row["Close"]):
+#       ret = False
+#   return ret 
+
+# def check_baissier(df):
+#   ret = True
+#   for count, row in df.iterrows():
+#     if (row["EMA_500"] <= row["Close"]):
+#       ret = False
+#   return ret  
 
 smawindow = 10
 rsiwindow = 14
@@ -49,6 +61,15 @@ dcp["TREND"] = dcp.iloc[-smalong]["SMA_L"] - dcp["SMA_L"]
 
 # dcp["HAUSSIER"] = (dcp["TREND"] < 0.0) & (dcp["TREND1"] < 0.0) & (dcp["TREND2"] < 0.0) & (dcp["TREND3"] < 0.0)
 # dcp["BAISSIER"] = (dcp["TREND"] > 0.0) & (dcp["TREND1"] > 0.0) & (dcp["TREND2"] > 0.0) & (dcp["TREND3"] > 0.0)
+
+# dcp["EMA_500"] = ta.trend.ema_indicator(dcp['Close'], window=500)
+# dcp["HAUSSIER"] = check_haussier(ldcp.tail(50))
+# dcp["BAISSIER"] = check_baissier(ldcp.tail(50))
+
+dcp["DMI+"] = ta.trend.adx_pos(dcp["High"], dcp["Low"], dcp["Close"], window=14)
+dcp["DMI-"] = ta.trend.adx_neg(dcp["High"], dcp["Low"], dcp["Close"], window=14)
+dcp["DMIADX"] = ta.trend.adx(dcp["High"], dcp["Low"], dcp["Close"], window=14)
+
 print(dcp)
 
 
@@ -62,9 +83,9 @@ startcoin = ((usdt * taxe) / dcp.iloc[0]['Close'])
 coin = 0
 
 #ETH
-sltaux = 0.006
-tptaux = 0.002
-levier = 5
+sltaux = 0.004
+tptaux = 0.004
+levier = 7
 
 # # #BTC
 # sltaux = 0.01

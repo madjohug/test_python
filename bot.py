@@ -11,6 +11,18 @@ import asyncio
 sys.setrecursionlimit(10**7)
 threading.stack_size(2**27)
 
+def periodic(period):
+    def scheduler(fcn):
+
+        async def wrapper(*args, **kwargs):
+
+            while True:
+                asyncio.create_task(fcn(*args, **kwargs))
+                await asyncio.sleep(period)
+
+        return wrapper
+
+    return scheduler
 
 def buyLongCondition(row, prev):
   if (row['STOCH_K'] > row['STOCH_D'] and prev['STOCH_K'] < prev['STOCH_D'] and row['STOCH_K'] < 20
@@ -68,6 +80,7 @@ client = Client("Tr80L4Fnm2g4m8gnI3YlrCGR0XhlW9shMmVw01IYrE6Kjrd5WRdisaFIGguwp1j
 
 client.futures_change_leverage(symbol=symbol, leverage=int(levier))
 
+@periodic(1)
 async def loop(symbol):
   t = float(round(time.time()))-0.75*3600 # - 45 minutes
 
@@ -204,23 +217,18 @@ async def loop(symbol):
           positionSide="SHORT",
           type="MARKET",
           quantity=abs(float(sellquantity)),
-        )
-
-    await asyncio.sleep(1)
-    await loop(symbol)
+        )  
   except exceptions.BinanceAPIException as e:
     file.write("\nException survenue BinanceAPI")
     client.futures_cancel_all_open_orders(symbol=symbol)
-    await asyncio.sleep(1)
-    await loop(symbol)
+    asyncio.run(loop(symbol))
   except requests.exceptions.ConnectionError as e:
     file.write("\nException survenue")
     client.futures_cancel_all_open_orders(symbol=symbol)
-    await asyncio.sleep(1)
-    await loop(symbol)
+    asyncio.run(loop(symbol))
   except RecursionError:
     await asyncio.sleep(1)
-    await loop(symbol)
+    asyncio.run(loop(symbol))
 
 file = open(filename, "a")
 file.write("\nLancement du bot le : " + now.strftime("%m/%d/%Y, %H:%M:%S"))

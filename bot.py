@@ -8,6 +8,10 @@ import sys
 from binance import exceptions, Client, enums
 import asyncio
 
+sys.setrecursionlimit(10**7)
+threading.stack_size(2**27)
+
+
 def buyLongCondition(row, prev):
   if (row['STOCH_K'] > row['STOCH_D'] and prev['STOCH_K'] < prev['STOCH_D'] and row['STOCH_K'] < 20
     and row["SMA"] > row["Close"]
@@ -212,6 +216,9 @@ async def loop(symbol):
   except requests.exceptions.ConnectionError as e:
     file.write("\nException survenue")
     client.futures_cancel_all_open_orders(symbol=symbol)
+    await asyncio.sleep(1)
+    await loop(symbol)
+  except RecursionError:
     await asyncio.sleep(1)
     await loop(symbol)
 

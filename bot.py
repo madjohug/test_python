@@ -202,15 +202,18 @@ async def loop(symbol):
           quantity=abs(float(sellquantity)),
         )
 
-    threading.Timer(1.0, loop, [symbol]).start()
+    await asyncio.sleep(1)
+    await loop(symbol)
   except exceptions.BinanceAPIException as e:
     file.write("\nException survenue BinanceAPI")
     client.futures_cancel_all_open_orders(symbol=symbol)
-    threading.Timer(1.0, loop, [symbol]).start()
+    await asyncio.sleep(1)
+    await loop(symbol)
   except requests.exceptions.ConnectionError as e:
     file.write("\nException survenue")
     client.futures_cancel_all_open_orders(symbol=symbol)
-    threading.Timer(1.0, loop, [symbol]).start()
+    await asyncio.sleep(1)
+    await loop(symbol)
 
 file = open(filename, "a")
 file.write("\nLancement du bot le : " + now.strftime("%m/%d/%Y, %H:%M:%S"))

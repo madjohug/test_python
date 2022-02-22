@@ -1,0 +1,31 @@
+
+Lancement du bot le : 02/22/2022, 00:43:00
+Données entrées pour ce bot : 
+    Stoploss : 0.004
+    Takeprofit : 0.004
+    Levier : 7.0
+Paire utilisée : ETHUSDT
+Lancement du bot le : 02/22/2022, 00:44:00
+Données entrées pour ce bot : 
+    Stoploss : 0.004
+    Takeprofit : 0.004
+    Levier : 7.0
+Paire utilisée : ETHUSDT
+Lancement du bot le : 02/22/2022, 00:44:00
+Données entrées pour ce bot : 
+    Stoploss : 0.004
+    Takeprofit : 0.004
+    Levier : 7.0
+Paire utilisée : ETHUSDT
+Lancement du bot le : 02/22/2022, 00:44:00
+Données entrées pour ce bot : 
+    Stoploss : 0.004
+    Takeprofit : 0.004
+    Levier : 7.0
+Paire utilisée : ETHUSDT
+Lancement du bot le : 02/22/2022, 00:46:00
+Données entrées pour ce bot : 
+    Stoploss : 0.004
+    Takeprofit : 0.004
+    Levier : 7.0
+Paire utilisée : ETHUSDT
